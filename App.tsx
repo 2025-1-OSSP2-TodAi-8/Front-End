@@ -1,12 +1,11 @@
 import React from 'react';
 import { SafeAreaView, Text, StyleSheet } from 'react-native';
-import VoiceRecorder from './components/VoiceRecorder';
 
 function App() {
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}> Hello TodAi!</Text>
-      <VoiceRecorder />
+      <Text style={styles.title}>TodAi</Text>
+      <Text style={styles.subtitle}>텍스트를 넘어,감정을 기록하다.</Text>
     </SafeAreaView>
   );
 }
