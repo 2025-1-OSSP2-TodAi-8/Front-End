@@ -1,32 +1,37 @@
-import React from 'react';
-import { SafeAreaView, Text, StyleSheet } from 'react-native';
+// App.tsx
+import React, { useEffect, useState } from 'react';
+import { Text, View } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-function App() {
+import LoginScreen from './components/Login/LoginScreen';
+import MainScreen from './components/Main/MainScreen';
+
+export default function App() {
+  const [userToken, setUserToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadToken = async () => {
+      const token = await AsyncStorage.getItem('userToken');
+      console.log('🔑 Loaded token:', token); // 콘솔에도 출력
+      setUserToken(token);
+      setLoading(false);
+    };
+    loadToken();
+  }, []);
+
+  if (loading) return null;
+
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>TodAi</Text>
-      <Text style={styles.subtitle}>텍스트를 넘어,감정을 기록하다.</Text>
-    </SafeAreaView>
+    <View style={{ flex: 1, justifyContent: 'center' }}>
+
+
+      {/* 화면 조건 분기 */}
+      {userToken ? (
+        <MainScreen setUserToken={setUserToken} />
+      ) : (
+        <LoginScreen setUserToken={setUserToken} />
+      )}
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fefefe',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  subtitle: {
-    fontSize: 18,
-    color: '#888',
-    marginTop: 10,
-  },
-});
-
-export default App;
