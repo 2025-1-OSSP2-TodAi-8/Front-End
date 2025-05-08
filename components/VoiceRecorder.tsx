@@ -51,6 +51,11 @@ const startRecording = async () => {
     await uploadRecording();
   };
 
+  const now = new Date();
+  const koreaNow = new Date(now.getTime() + 9 * 60 * 60 * 1000); // UTC+9 보정
+  const pad = (n: number) => n.toString().padStart(2,'0');
+  const timestamp = `${koreaNow.getFullYear()}-${pad(koreaNow.getMonth() + 1)}-${pad(koreaNow.getDate())}_${pad(koreaNow.getHours())}-${pad(koreaNow.getMinutes())}-${pad(koreaNow.getSeconds())}`;
+  const fileName = `recording-${timestamp}.mp4`;
 
   const uploadRecording = async () => {
     if (!recordedFile) return;
@@ -59,11 +64,11 @@ const startRecording = async () => {
     data.append('file', {
       uri: recordedFile,
       type: 'audio/mp4',
-      name: 'recording.mp4',
+      name: fileName,
     } as any); // 'as any'는 타입스크립트 오류 방지용
   
     try {
-      const response = await fetch('백 주소', {
+      const response = await fetch('https://webhook.site/8717bb37-5f8e-441d-b479-9dd5bcfcaaed', {
         method: 'POST',
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -71,7 +76,7 @@ const startRecording = async () => {
         body: data,
       });
   
-      const result = await response.json();
+      const result = await response.text();
       console.log('서버 응답:', result);
     } catch (error) {
       console.error('업로드 실패:', error);
