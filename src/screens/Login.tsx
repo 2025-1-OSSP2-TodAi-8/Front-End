@@ -7,7 +7,7 @@ import API from '../api/api';
 type RootStackParamList={
   LoginScreen: undefined;
   NewUser: undefined;
-  Main: undefined;
+  Conversation: undefined;
 };
 
 type NavigationProp=NativeStackNavigationProp<RootStackParamList, 'LoginScreen'>;
@@ -24,7 +24,7 @@ export default function Login() {
 
       const result=response.data;
       if (response.status===200) {
-        navigation.navigate('Main');
+        navigation.navigate('Conversation');
       } 
       else {
         Alert.alert('로그인 실패', result.message || '아이디나 비밀번호가 틀렸습니다.');
@@ -43,7 +43,7 @@ export default function Login() {
             <TextInput style={styles.inputID} placeholder='아이디를 입력하세요' placeholderTextColor="#bea4d2"/>
             <TextInput style={styles.inputID} placeholder='비밀번호를 입력하세요' placeholderTextColor="#bea4d2"/>
             </View>
-            <TouchableOpacity style={styles.loginbutton} onPress={()=>navigation.navigate('Main')}>
+            <TouchableOpacity style={styles.loginbutton} onPress={()=>navigation.navigate('Conversation')}>
                 <Text style={styles.logintext}>로그인</Text> 
             </TouchableOpacity>
             <Text style={styles.text}>기존 회원이 아니신가요?</Text>
