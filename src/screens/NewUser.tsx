@@ -32,14 +32,31 @@ export default function NewUser() {
         console.error(error);
     }
 };
+const duplicate=async()=>{
+    if(!userID){
+        Alert.alert('아이디를 입력하세요');
+        return;
+    }
+    try{
+        const response=await API.post('/checkID', {id: userID});
+        if(response.data.exists){
+            Alert.alert('이미 존재하는 아이디 입니다. ');
+        }
+        else Alert.alert('사용 가능한 아이디 입니다.');
+    }
+    catch(error){{
+        Alert.alert('확인 실패');
+        console.error(error);
+    }}
+};
 
     return(
       <SafeAreaView style={styles.container}>
             <Text style={styles.text}>TodAi에 오신 것을 환영합니다!</Text>
             <TextInput style={styles.nickname} placeholder='닉네임을 입력하세요' placeholderTextColor="#bea4d2" value={nickname} onChangeText={setNickname}/>
-            <TextInput style={styles.ID} placeholder='아이디를 입력하세요' placeholderTextColor="#bea4d2"/>
+            <TextInput style={styles.ID} placeholder='아이디를 입력하세요' placeholderTextColor="#bea4d2" value={userID} onChangeText={setuserID}/>
 
-             <TouchableOpacity style={styles.checkID}>
+             <TouchableOpacity style={styles.checkID} onPress={duplicate}>
                 <Text style={styles.checkIDtext}>중복{'\n'}확인</Text>
             </TouchableOpacity>
             <TextInput style={styles.password} placeholder='비밀번호를 입력하세요' placeholderTextColor="#bea4d2" value={password} onChangeText={setPW}/>
@@ -57,7 +74,7 @@ export default function NewUser() {
                 <Text style={styles.finishtext}>회원가입</Text>
             </TouchableOpacity>
       </SafeAreaView>
-        
+      
     );
 }
 
