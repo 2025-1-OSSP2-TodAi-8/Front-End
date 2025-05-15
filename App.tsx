@@ -20,3 +20,11 @@ export default function App() {
     </NavigationContainer>
   );
 }
+
+// import React from 'react';
+// import MainScreen from './src/screens/Conversation';
+// import Conversation from './src/screens/Conversation';
+
+// export default function App() {
+//   return <Conversation />;
+// }
