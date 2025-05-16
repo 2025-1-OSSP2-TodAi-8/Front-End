@@ -1,5 +1,5 @@
 {
-  "name": "TODAI",
+  "name": "todai",
   "version": "0.0.1",
   "private": true,
   "scripts": {
@@ -34,7 +34,7 @@
     "@react-native/babel-preset": "0.79.1",
     "@react-native/eslint-config": "0.79.1",
     "@react-native/metro-config": "0.79.1",
-    "@react-native/typescript-config": "0.79.1",
+    "@react-native/typescript-config": "^0.79.1",
     "@types/axios": "^0.9.36",
     "@types/jest": "^29.5.13",
     "@types/react": "^19.1.2",
