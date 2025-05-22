@@ -20,14 +20,18 @@ const emotionEmojiMap: { [key: string]: string } = {
 type MainScreenProps = {
   setUserToken: (token: string | null) => void;
   onDiaryPress: (entry: { date: string; emotion: string; content: string }) => void;
+  year: number;
+  month: number;
+  selectedDate: string | null;
+  setYear: (y: number) => void;
+  setMonth: (m: number) => void;
+  setSelectedDate: (d: string | null) => void;
+  setYearMonthAndDateRef?: (setter: (year: number, month: number, date: string) => void) => void;
 };
 
-const MainScreen = ({ setUserToken, onDiaryPress }: MainScreenProps) => {
-  const [year, setYear] = useState(2025);
-  const [month, setMonth] = useState(1);
-  const [emotionData, setEmotionData] = useState<{ date: string; emotion: string }[]>([]);
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+const MainScreen = ({ setUserToken, onDiaryPress, year, month, selectedDate, setYear, setMonth, setSelectedDate, setYearMonthAndDateRef }: MainScreenProps) => {
+  const [emotionData, setEmotionData] = React.useState<{ date: string; emotion: string }[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
   const fetchMonthlyEmotions = async () => {
     setLoading(true);
@@ -49,6 +53,17 @@ const MainScreen = ({ setUserToken, onDiaryPress }: MainScreenProps) => {
   useEffect(() => {
     fetchMonthlyEmotions();
   }, [month, year]);
+
+  // 외부에서 연/월/일을 세팅할 수 있도록 콜백 등록
+  React.useEffect(() => {
+    if (setYearMonthAndDateRef) {
+      setYearMonthAndDateRef((y, m, d) => {
+        setYear(y);
+        setMonth(m);
+        setSelectedDate(d);
+      });
+    }
+  }, [setYearMonthAndDateRef]);
 
   const handleDiaryPress = () => {
     const emotion = emotionData.find((item) => item.date === selectedDate)?.emotion ?? '';

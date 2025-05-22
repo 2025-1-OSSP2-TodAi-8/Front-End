@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Image } from 'react-native';
 
 type EmotionData = { date: string; emotion: string };
 
@@ -25,43 +25,53 @@ const CalendarGrid = ({
 
   const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
 
+  // 오늘 날짜 계산
+  const todayString = '2025-05-22';
+
   const getEmotionByDate = (day: number) => {
     const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return emotionData.find((item) => item.date === dateString)?.emotion ?? null;
   };
 
   const renderDay = (day: number | null, index: number) => {
-  if (day === null) {
-    return <View key={`empty-${index}`} style={styles.emptyBox} />;
-  }
+    if (day === null) {
+      return <View key={`empty-${index}`} style={styles.emptyBox} />;
+    }
 
-  const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  const emotion = getEmotionByDate(day);
-  const emoji = emotion ? emotionEmojiMap[emotion] : null;
-  const isSelected = selectedDate === dateString;
+    const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const emotion = getEmotionByDate(day);
+    const emoji = emotion ? emotionEmojiMap[emotion] : null;
+    const isSelected = selectedDate === dateString;
+    const isToday = dateString === todayString;
 
-  return (
-    <TouchableOpacity
-      key={day}
-      onPress={() => {
-        setSelectedDate(prev => (prev === dateString ? null : dateString));
-      }}
-      style={styles.dayWrapper}
-    >
-      <View style={[styles.circle, isSelected && styles.selectedCircle]}>
-      {emoji ? (
-        <>
-          <Text style={styles.emoji}>{emoji}</Text>
-          <Text style={styles.dateUnderEmoji}>{day}</Text>
-        </>
-      ) : (
-        <Text style={styles.dateOnlyText}>{day}</Text>
-      )}
-    </View>
-    </TouchableOpacity>
-  );
-};
-
+    return (
+      <TouchableOpacity
+        key={day}
+        onPress={() => {
+          if (selectedDate === dateString) {
+            setSelectedDate('');
+          } else {
+            setSelectedDate(dateString);
+          }
+        }}
+        style={styles.dayWrapper}
+      >
+        <View style={[styles.circle, isSelected && !isToday && styles.selectedCircle]}>
+          {emoji ? (
+            <>
+              <Text style={styles.emoji}>{emoji}</Text>
+              <Text style={styles.dateUnderEmoji}>{day}</Text>
+            </>
+          ) : (
+            <Text style={styles.dateOnlyText}>{day}</Text>
+          )}
+        </View>
+        {isToday && (
+          <Image source={require('../../assets/images/today.png')} style={styles.todayBadge} />
+        )}
+      </TouchableOpacity>
+    );
+  };
 
   const dayArray = [
     ...Array(firstDay).fill(null),
@@ -118,6 +128,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginVertical: 8,
     marginHorizontal: 2, // ✅ 살짝 여백 주기만 하면 딱 떨어짐
+    position: 'relative',
   },
   circle: {
     width: 46,             // 원 크기 확대
@@ -138,28 +149,38 @@ const styles = StyleSheet.create({
   dayText: {
     fontSize: 16,          // 숫자도 조금 키움
     color: '#333',
-  }, 
+  },
   emptyBox: {
     width: boxSize,
     height: boxSize,
     marginHorizontal: 2, // ✅ 날짜 셀과 똑같이 줘야 정렬이 맞음!
   },
   emojiWithDate: {
-  fontSize: 24,
-  textAlign: 'center',
-  lineHeight: 28,
-},
-dateUnderEmoji: {
-  fontSize: 10,
-  color: '#999',
-  textAlign: 'center',
-  marginTop: 0,      // 여유 간격 없앰
-},
-dateOnlyText: {
-  fontSize: 16,
-  color: '#333',
-  textAlign: 'center',
-},
+    fontSize: 24,
+    textAlign: 'center',
+    lineHeight: 28,
+  },
+  dateUnderEmoji: {
+    fontSize: 10,
+    color: '#999',
+    textAlign: 'center',
+    marginTop: 0,      // 여유 간격 없앰
+  },
+  dateOnlyText: {
+    fontSize: 16,
+    color: '#333',
+    textAlign: 'center',
+  },
+  todayBadge: {
+    width: 48,
+    height: 24,
+    resizeMode: 'contain',
+    position: 'absolute',
+    top: -18,
+    left: '50%',
+    transform: [{ translateX: -24 }],
+    zIndex: 2,
+  },
 });
 
 export default CalendarGrid;

@@ -17,6 +17,16 @@ export default function App() {
     emotion: string;
     content: string;
   } | null>(null);
+  const [year, setYear] = useState(2025);
+  const [month, setMonth] = useState(5);
+  const getTodayString = () => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   useEffect(() => {
     const initialize = async () => {
@@ -45,7 +55,13 @@ export default function App() {
         date={diaryDetail.date}
         emotion={diaryDetail.emotion}
         content={diaryDetail.content}
-        onBack={() => setDiaryDetail(null)} // 돌아가기 버튼 구현 필요
+        onBack={() => {
+          const [y, m, d] = diaryDetail.date.split('-').map(Number);
+          setYear(y);
+          setMonth(m);
+          setSelectedDate(diaryDetail.date);
+          setDiaryDetail(null);
+        }}
       />
     );
   }
@@ -55,6 +71,12 @@ export default function App() {
     <MainScreen
       setUserToken={setUserToken}
       onDiaryPress={(entry) => setDiaryDetail(entry)}
+      year={year}
+      month={month}
+      selectedDate={selectedDate}
+      setYear={setYear}
+      setMonth={setMonth}
+      setSelectedDate={setSelectedDate}
     />
   );
 }
