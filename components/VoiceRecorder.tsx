@@ -1,12 +1,17 @@
 // components/AudioRecorder.tsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Button, PermissionsAndroid, Platform } from 'react-native';
 import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 import RNFS from 'react-native-fs';
 
 const audioRecorderPlayer = new AudioRecorderPlayer();
 
-const AudioRecorder = () => {
+const AudioRecorder = ({start}: {start: boolean}) => { //수정된 부분
+  useEffect(()=>{
+    if (start) startRecording();
+    else stopRecording();
+  }, [start]);
+  //
   const [recording, setRecording] = useState(false);
   const [recordedFile, setRecordedFile] = useState<string | null>(null);
 
@@ -83,13 +88,13 @@ const startRecording = async () => {
     }
   };
   
-
-  return (
-    <View>
-      <Button title={recording ? '녹음 중...' : '녹음 시작'} onPress={startRecording} disabled={recording} />
-      <Button title="녹음 종료" onPress={stopRecording} disabled={!recording}  />
-    </View>
-  );
+  return null;
+  // return (
+  //   <View>
+  //     <Button title={recording ? '녹음 중...' : '녹음 시작'} onPress={startRecording} disabled={recording} />
+  //     <Button title="녹음 종료" onPress={stopRecording} disabled={!recording}  />
+  //   </View>
+  // );
 };
 
 export default AudioRecorder;

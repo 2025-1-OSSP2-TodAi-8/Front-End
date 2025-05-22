@@ -1,5 +1,6 @@
 import React, {useState, useEffect} from 'react';
 import { SafeAreaView, Text, StyleSheet, View, Image, TouchableOpacity, Animated } from 'react-native';
+import AudioRecorder from '../../components/VoiceRecorder';
 
 function Conversation() {
     const [showQuestion, setQuestion]=useState(false);
@@ -10,10 +11,13 @@ function Conversation() {
         return()=>clearTimeout(timer);
     }, []);
 
-    const [Animation]=useState(new Animated.Value(0));
+    const [questionAnimation]=useState(new Animated.Value(0));
+    const [userRecordingAnimation]=useState(new Animated.Value(0));
+    const [summaryAnimation]=useState(new Animated.Value(0));
     useEffect(()=>{
         const timer=setTimeout(()=>{
-            Animated.timing(Animation, {
+          setQuestion(true);
+            Animated.timing(questionAnimation, {
                 toValue: 1, 
                 duration: 300, 
                 useNativeDriver: true,
@@ -21,6 +25,36 @@ function Conversation() {
         }, 500);
         return ()=>clearTimeout(timer);
     }, []);
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordStart, setrecordStart]=useState(false);
+  const [showSummary, setshowSummary]=useState(false);
+  const toggleRecording = () => {
+    setIsRecording(prev => {
+      const newState=!prev;
+      if(newState) {
+        setrecordStart(true);
+        userRecordingAnimation.setValue(0);
+        Animated.timing(userRecordingAnimation, {
+          toValue:1, 
+          duration: 300, 
+          useNativeDriver: true,
+        }).start();
+      }
+      else{
+        setTimeout(()=>{
+          setshowSummary(true);
+          summaryAnimation.setValue(0);
+          Animated.timing(summaryAnimation, {
+            toValue:1, 
+            duration:300, 
+            useNativeDriver: true,
+          }).start();
+        }, 500);
+      }
+      return newState;
+    });
+  };
 
   return(
     <SafeAreaView style={styles.container}>
@@ -31,18 +65,30 @@ function Conversation() {
             </TouchableOpacity>
         </View>
       <Image source={require('./assets/bar.png')} style={styles.bar1} />
-      {/* 날짜 정보  => 버튼인가? */}
-
+      {/* 날짜 정보-버튼 */}
         <View style={styles.middle}>
             <Text style={styles.subtitle}>오늘 하루를 기록해 주세요</Text>
-            <Animated.View style={[styles.question, {opacity: Animation}]}>
+            {showQuestion&&(
+            <Animated.View style={[styles.question, {opacity: questionAnimation}]}>
                 <Text style={styles.text}>오늘 하루는 어떠셨나요?{'\t\t\t\t'}</Text>
             </Animated.View>  
+            )}
         </View>
         <Image source={require('./assets/bar.png')} style={styles.bar2} />
-        <TouchableOpacity style={styles.mic} onPress={()=>console.log(' ')}>
+        <TouchableOpacity style={styles.mic} onPress={toggleRecording}>
             <Image source={require('./assets/mic.png')} style={styles.mic}/>
         </TouchableOpacity>
+        {recordStart&&(
+          <Animated.View style={[styles.userRecording, {opacity: userRecordingAnimation}]}>
+            <Image source={require('./assets/longwave.png')} style={styles.userRecordingImage}/>
+          </Animated.View>
+        )}
+        <AudioRecorder start={isRecording}/>
+        {showSummary&&(
+        <Animated.View style={[styles.summary, {opacity: summaryAnimation}]}>
+                <Text style={styles.summarytext}>요약</Text>
+            </Animated.View> 
+        )}
     </SafeAreaView>
   );
 };
@@ -116,5 +162,52 @@ const styles=StyleSheet.create({
   middle:{
     alignItems: 'center',
   },
+  userRecording:{
+    position: 'absolute', 
+    width: 200, 
+    height: 40, 
+    backgroundColor: '#fff', 
+    top: 280, 
+    right: 20, 
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset:{
+        width: 0, 
+        height: 3, 
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 10, 
+    elevation: 7, 
+  },
+  userRecordingImage:{
+    width: 150, 
+    height: 100, 
+    resizeMode: 'contain', 
+  },
+  summary:{
+    position: 'absolute',
+    width: 200,
+    height: 100,
+    top: 340,
+    left: 15,
+    backgroundColor: '#ded1ff',
+    justifyContent: 'center', 
+    alignItems: 'center',     
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset:{
+        width: 0, 
+        height: 3, 
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 10, 
+    elevation: 7, 
+  }, 
+  summarytext: {
+    fontSize: 13,
+    color: '#000',
+  }, 
 });
 export default Conversation;
