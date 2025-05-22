@@ -4,6 +4,14 @@ import AudioRecorder from '../../components/VoiceRecorder';
 
 function Conversation() {
     const [showQuestion, setQuestion]=useState(false);
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordStart, setrecordStart]=useState(false);
+    const [showSummary, setshowSummary]=useState(false);
+    const [summarytext, setsummarytext]=useState('');
+    const [questionAnimation]=useState(new Animated.Value(0));
+    const [userRecordingAnimation]=useState(new Animated.Value(0));
+    const [summaryAnimation]=useState(new Animated.Value(0));
+
     useEffect(()=>{
         const timer=setTimeout(()=>{
             setQuestion(true);
@@ -11,12 +19,9 @@ function Conversation() {
         return()=>clearTimeout(timer);
     }, []);
 
-    const [questionAnimation]=useState(new Animated.Value(0));
-    const [userRecordingAnimation]=useState(new Animated.Value(0));
-    const [summaryAnimation]=useState(new Animated.Value(0));
     useEffect(()=>{
         const timer=setTimeout(()=>{
-          setQuestion(true);
+          //setQuestion(true);
             Animated.timing(questionAnimation, {
                 toValue: 1, 
                 duration: 300, 
@@ -26,9 +31,17 @@ function Conversation() {
         return ()=>clearTimeout(timer);
     }, []);
 
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordStart, setrecordStart]=useState(false);
-  const [showSummary, setshowSummary]=useState(false);
+    const fetchSummary=async()=>{
+      try{
+        const response=await fetch('서버');
+        const result=await response.json();
+        setsummarytext(result.summary||'summary 실패');
+      }
+      catch(error){
+        console.error('summary 실패', error);
+      }
+    };
+
   const toggleRecording = () => {
     setIsRecording(prev => {
       const newState=!prev;
@@ -50,6 +63,7 @@ function Conversation() {
             duration:300, 
             useNativeDriver: true,
           }).start();
+          fetchSummary();
         }, 500);
       }
       return newState;
@@ -86,7 +100,7 @@ function Conversation() {
         <AudioRecorder start={isRecording}/>
         {showSummary&&(
         <Animated.View style={[styles.summary, {opacity: summaryAnimation}]}>
-                <Text style={styles.summarytext}>요약</Text>
+                <Text style={styles.summarytext}>{summarytext||'@님의 오늘의 이야기를 더 들을 수 있을까요?'}</Text>
             </Animated.View> 
         )}
     </SafeAreaView>
