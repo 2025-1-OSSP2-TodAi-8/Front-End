@@ -5,7 +5,7 @@ import MainScreen from './src/screens/LoginScreen';
 import Login from './src/screens/Login';
 import NewUser from './src/screens/NewUser';
 import Main from './src/screens/Main';
-import Conversation from './src/screens/Conversation';
+import Conversation from './src/screens/conversation';
 
 const Stack=createNativeStackNavigator();
 
