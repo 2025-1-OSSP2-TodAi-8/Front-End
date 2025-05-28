@@ -2,7 +2,7 @@ import React, {useState, useEffect} from 'react';
 import { SafeAreaView, Text, StyleSheet, View, Image, TouchableOpacity, Animated } from 'react-native';
 import AudioRecorder from '../../components/VoiceRecorder';
 
-function Conversation() {
+function Conversation({navigation}: {navigation: any}) {
     const [showQuestion, setQuestion]=useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const [recordStart, setrecordStart]=useState(false);
@@ -74,7 +74,7 @@ function Conversation() {
     <SafeAreaView style={styles.container}>
         <View style={styles.header}>
             <Text style={styles.title}>TodAi</Text>
-            <TouchableOpacity style={styles. menu} onPress={()=>console.log(' ')}>
+            <TouchableOpacity style={styles. menu} onPress={()=>navigation.openDrawer()}>
                 <Image source={require('./assets/menu.png')} style={styles.menu} /> 
             </TouchableOpacity>
         </View>
