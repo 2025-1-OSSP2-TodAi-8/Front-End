@@ -9,7 +9,17 @@ type Props = {
   emotionData: EmotionData[];
   selectedDate: string | null;
   setSelectedDate: (date: string) => void;
-  emotionEmojiMap: { [key: string]: string };
+  emotionImageMap: { [key: string]: any };
+};
+
+const emotionImageMap: { [key: string]: any } = {
+  중립: require('../../assets/images/neutral.png'),
+  놀람: require('../../assets/images/surprise.png'),
+  화남: require('../../assets/images/angry.png'),
+  행복: require('../../assets/images/happy.png'),
+  슬픔: require('../../assets/images/sad.png'),
+  혐오: require('../../assets/images/disgust.png'),
+  공포: require('../../assets/images/fear.png'),
 };
 
 const CalendarGrid = ({
@@ -18,7 +28,7 @@ const CalendarGrid = ({
   emotionData,
   selectedDate,
   setSelectedDate,
-  emotionEmojiMap,
+  emotionImageMap,
 }: Props) => {
   const daysInMonth = new Date(year, month, 0).getDate();
   const firstDay = new Date(year, month - 1, 1).getDay(); // 0(일) ~ 6(토)
@@ -26,7 +36,8 @@ const CalendarGrid = ({
   const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
 
   // 오늘 날짜 계산
-  const todayString = '2025-05-22';
+  const today = new Date();
+  const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
   const getEmotionByDate = (day: number) => {
     const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -40,7 +51,6 @@ const CalendarGrid = ({
 
     const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const emotion = getEmotionByDate(day);
-    const emoji = emotion ? emotionEmojiMap[emotion] : null;
     const isSelected = selectedDate === dateString;
     const isToday = dateString === todayString;
 
@@ -57,9 +67,9 @@ const CalendarGrid = ({
         style={styles.dayWrapper}
       >
         <View style={[styles.circle, isSelected && !isToday && styles.selectedCircle]}>
-          {emoji ? (
+          {emotion && emotionImageMap[emotion] ? (
             <>
-              <Text style={styles.emoji}>{emoji}</Text>
+              <Image source={emotionImageMap[emotion]} style={styles.emojiImg} />
               <Text style={styles.dateUnderEmoji}>{day}</Text>
             </>
           ) : (
@@ -142,9 +152,11 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#6A0DAD',
   },
-  emoji: {
-    fontSize: 20,
-    marginBottom: -2,        // 이모지도 더 큼직하게
+  emojiImg: {
+    width: 28,
+    height: 28,
+    resizeMode: 'contain',
+    marginBottom: 0,
   },
   dayText: {
     fontSize: 16,          // 숫자도 조금 키움

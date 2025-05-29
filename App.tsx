@@ -53,13 +53,10 @@ export default function App() {
     return (
       <DiaryDetailScreen
         date={diaryDetail.date}
-        emotion={diaryDetail.emotion}
-        content={diaryDetail.content}
-        onBack={() => {
-          const [y, m, d] = diaryDetail.date.split('-').map(Number);
+        onBack={({ year: y, month: m, date }) => {
           setYear(y);
           setMonth(m);
-          setSelectedDate(diaryDetail.date);
+          setSelectedDate(date);
           setDiaryDetail(null);
         }}
       />
