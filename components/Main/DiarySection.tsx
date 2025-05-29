@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type EmotionData = { date: string; emotion: string };
@@ -7,8 +7,8 @@ type EmotionData = { date: string; emotion: string };
 type Props = {
   selectedDate: string | null;
   emotionData: EmotionData[];
-  emotionEmojiMap: { [key: string]: string };
-  onPressHeader?: () => void;
+  emotionImageMap: { [key: string]: any };
+  onPressHeader: () => void;
 };
 
 const getWeekday = (dateStr: string) => {
@@ -16,7 +16,7 @@ const getWeekday = (dateStr: string) => {
   return days[new Date(dateStr).getDay()];
 };
 
-const DiarySection = ({ selectedDate, emotionData, emotionEmojiMap, onPressHeader }: Props) => {
+const DiarySection = ({ selectedDate, emotionData, emotionImageMap, onPressHeader }: Props) => {
   const [content, setContent] = useState('');
   const [typingTimeout, setTypingTimeout] = useState<NodeJS.Timeout | null>(null);
 
@@ -59,9 +59,14 @@ const DiarySection = ({ selectedDate, emotionData, emotionEmojiMap, onPressHeade
   return (
     <View style={styles.container}>
       <TouchableOpacity onPress={onPressHeader} activeOpacity={0.7} disabled={!onPressHeader}>
-        <Text style={styles.header}>
-          {emotion && `${emotionEmojiMap[emotion] || '❓'} `}{month}.{day} ({weekday})
-        </Text>
+        <View style={styles.headerContainer}>
+          {emotion && emotionImageMap[emotion] ? (
+            <Image source={emotionImageMap[emotion]} style={styles.emotionImage} />
+          ) : (
+            <Text style={styles.headerText}>❓</Text>
+          )}
+          <Text style={styles.headerText}>{month}.{day} ({weekday})</Text>
+        </View>
       </TouchableOpacity>
       <TextInput
         style={styles.input}
@@ -83,11 +88,20 @@ const styles = StyleSheet.create({
     elevation: 3,
     marginBottom: 20,
   },
-  header: {
-    fontSize: 18,
-    fontWeight: '600',
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  emotionImage: {
+    width: 24,
+    height: 24,
+    marginRight: 8,
+  },
+  headerText: {
+    fontSize: 16,
     color: '#6A0DAD',
-    marginBottom: 10,
+    fontWeight: 'bold',
+    lineHeight: 24,
   },
   input: {
     height: 100,

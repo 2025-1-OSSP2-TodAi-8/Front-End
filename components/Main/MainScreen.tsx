@@ -7,14 +7,14 @@ import YearMonthSelector from './YearMonthSelector';
 import CalendarGrid from './CalendarGrid';
 import DiarySection from './DiarySection';
 
-const emotionEmojiMap: { [key: string]: string } = {
-  중립: '😐',
-  놀람: '😲',
-  화남: '😠',
-  행복: '😊',
-  슬픔: '😢',
-  혐오: '🤢',
-  공포: '😱',
+const emotionImageMap: { [key: string]: any } = {
+  중립: require('../../assets/images/neutral.png'),
+  놀람: require('../../assets/images/surprise.png'),
+  화남: require('../../assets/images/angry.png'),
+  행복: require('../../assets/images/happy.png'),
+  슬픔: require('../../assets/images/sad.png'),
+  혐오: require('../../assets/images/disgust.png'),
+  공포: require('../../assets/images/fear2.png'),
 };
 
 type MainScreenProps = {
@@ -88,12 +88,12 @@ const MainScreen = ({ setUserToken, onDiaryPress, year, month, selectedDate, set
               emotionData={emotionData}
               selectedDate={selectedDate}
               setSelectedDate={setSelectedDate}
-              emotionEmojiMap={emotionEmojiMap}
+              emotionImageMap={emotionImageMap}
             />
             <DiarySection
               selectedDate={selectedDate}
               emotionData={emotionData}
-              emotionEmojiMap={emotionEmojiMap}
+              emotionImageMap={emotionImageMap}
               onPressHeader={handleDiaryPress}
             />
           </>

@@ -1,29 +1,40 @@
 import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet, Image, Alert } from 'react-native';
+import DiaryFavoriteButton from './DiaryFavoriteButton';
 
 type Props = {
-    onBack: () => void;
+    date: string;
 };
 
-const DiaryDetailActions = ({ onBack }: Props) => {
+const FAVORITE_API_URL = 'http://121.189.72.83:8888/api/diary/marking';
+
+const DiaryDetailActions = ({ date }: Props) => {
+    const handleFavorite = async () => {
+        try {
+            const res = await fetch(FAVORITE_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: 1, date }),
+            });
+            const data = await res.json();
+            console.log('서버 응답:', data, 'status:', res.status);
+            if (res.ok && data.success === 1) {
+                Alert.alert('알림', '즐겨찾기 등록/해제 성공!');
+            } else {
+                Alert.alert('오류', `즐겨찾기 등록/해제 실패: ${JSON.stringify(data)}`);
+            }
+        } catch (e) {
+            console.log('fetch 에러:', e);
+            Alert.alert('오류', '즐겨찾기 등록/해제 실패(네트워크)');
+        }
+    };
+
     return (
-        <View style={styles.actionsContainer}>
-            <View style={styles.iconRow}>
-                <TouchableOpacity style={styles.iconButton}>
-                    <Text style={styles.icon}>⭐</Text>
-                    <Text style={styles.iconLabel}>즐겨찾기</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.iconButton}>
-                    <Text style={styles.icon}>🔊</Text>
-                    <Text style={styles.iconLabel}>녹음 다시듣기</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.iconButton}>
-                    <Text style={styles.icon}>💾</Text>
-                    <Text style={styles.iconLabel}>저장</Text>
-                </TouchableOpacity>
-            </View>
-            <TouchableOpacity style={styles.backButton} onPress={onBack}>
-                <Text style={styles.backButtonText}>돌아가기</Text>
+        <View style={styles.navBar}>
+            <DiaryFavoriteButton date={date} />
+            <TouchableOpacity style={styles.navItem}>
+                <Image source={require('../../assets/images/save.png')} style={styles.navIconImg} />
+                <Text style={styles.navLabel}>저장</Text>
             </TouchableOpacity>
         </View>
     );
@@ -33,7 +44,7 @@ const styles = StyleSheet.create({
     actionsContainer: {
         width: '100%',
         alignItems: 'center',
-        marginTop: 16,
+        marginTop: 10,
         marginBottom: 24,
     },
     iconRow: {
@@ -53,18 +64,40 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#6A0DAD',
     },
-    backButton: {
-        backgroundColor: '#6A0DAD',
-        borderRadius: 8,
+    navBar: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        alignItems: 'center',
+        width: '100%',
+        borderTopWidth: 2,
+        borderTopColor: '#B39DDB',
         paddingVertical: 12,
-        paddingHorizontal: 60,
-        marginTop: 8,
+        backgroundColor: '#F5E8FF',
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 10,
+        zIndex: 10,
     },
-    backButtonText: {
-        color: '#fff',
-        fontSize: 16,
+    navItem: {
+        alignItems: 'center',
+        flex: 1,
+    },
+    navIcon: {
+        fontSize: 28,
+        color: '#6A0DAD',
+        marginBottom: 2,
+    },
+    navLabel: {
+        fontSize: 13,
+        color: '#6A0DAD',
         fontWeight: 'bold',
-        textAlign: 'center',
+    },
+    navIconImg: {
+        width: 28,
+        height: 28,
+        resizeMode: 'contain',
+        marginBottom: 2,
     },
 });
 
