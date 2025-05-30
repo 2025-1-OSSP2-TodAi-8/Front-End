@@ -12,7 +12,6 @@ export default function DrawerNavigator() {
       <Drawer.Screen name="기록하기" component={Conversation} />
       <Drawer.Screen name="즐겨찾기 한 감정" component={Conversation} />
       <Drawer.Screen name="마이 페이지" component={Conversation} />
-      <Drawer.Screen name="환경설정" component={Conversation} />
     </Drawer.Navigator>
   );
 }
