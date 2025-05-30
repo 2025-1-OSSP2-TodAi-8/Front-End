@@ -6,6 +6,7 @@ import Login from './src/screens/Login';
 import NewUser from './src/screens/NewUser';
 import Main from './src/screens/Main';
 import DrawerNavigator from './src/navigation/DrawerNavigation';
+import Conversation from './src/screens/conversation';
 // import Conversation from './src/screens/conversation';
 
 const Stack=createNativeStackNavigator();
@@ -17,10 +18,7 @@ export default function App() {
         <Stack.Screen name='MainScreen' component={MainScreen}/>
         <Stack.Screen name='Login' component={Login}/>
         <Stack.Screen name='NewUser' component={NewUser}/>
-        <Stack.Screen name="Conversation" component={DrawerNavigator} />
-
-        {/* <Stack.Screen name='Main' component={Main}/>
-        <Stack.Screen name='Conversation' component={Conversation}/> */}
+        {/* <Stack.Screen name="Conversation" component={Conversation} /> */}
         <Stack.Screen name="MainApp" component={DrawerNavigator}/>
       </Stack.Navigator>
     </NavigationContainer>
