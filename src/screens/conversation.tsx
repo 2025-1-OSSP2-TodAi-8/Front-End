@@ -1,6 +1,8 @@
 import React, {useState, useEffect} from 'react';
 import { SafeAreaView, Text, StyleSheet, View, Image, TouchableOpacity, Animated } from 'react-native';
 import AudioRecorder from '../../components/VoiceRecorder';
+import { LocalNotification } from '../../components/Notification';
+import { Button } from 'react-native';
 
 function Conversation({navigation}: {navigation: any}) {
     const [showQuestion, setQuestion]=useState(false);
@@ -70,6 +72,10 @@ function Conversation({navigation}: {navigation: any}) {
     });
   };
 
+  const NotificationCondition=()=>{
+    LocalNotification("TodAi", "사용자가 3일 연속 우울한 감정을 느끼고 있습니다");
+  };
+
   return(
     <SafeAreaView style={styles.container}>
         <View style={styles.header}>
@@ -103,6 +109,8 @@ function Conversation({navigation}: {navigation: any}) {
                 <Text style={styles.summarytext}>{summarytext||'@님의 오늘의 이야기를 더 들을 수 있을까요?'}</Text>
             </Animated.View> 
         )}
+        {/* 알림 테스트 버튼 */}
+        <Button title="test" onPress={()=>LocalNotification("test", "alert")}/>
     </SafeAreaView>
   );
 };
