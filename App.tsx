@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import MainScreen from './src/screens/LoginScreen';
 import Login from './src/screens/Login';
 import NewUser from './src/screens/NewUser';
-import Main from './src/screens/Main';
+import Mypage from './src/screens/Mypage';
 import DrawerNavigator from './src/navigation/DrawerNavigation';
 import Conversation from './src/screens/conversation';
 import { Permission, NotificationSetting, Token} from './components/Notification';
