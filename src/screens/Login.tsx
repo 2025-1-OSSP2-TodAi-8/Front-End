@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import { SafeAreaView, Text, TextInput, TouchableOpacity, StyleSheet, View, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import API from '../api/api';
 
 type RootStackParamList={
@@ -20,15 +21,19 @@ export default function Login() {
 
   const handleLogin=async () => {
     try {
-      const response=await API.post('/login', { id: userId, password: password, 
+      const response=await API.post('/api/people/signin', { 
+        username: userId, 
+        password: password, 
       });
 
-      const result=response.data;
+
       if (response.status===200) {
+        const {access}=response.data;   
+        await AsyncStorage.setItem('accessToken', access);     
         navigation.navigate('Conversation');
       } 
       else {
-        Alert.alert('로그인 실패', result.message || '아이디나 비밀번호가 틀렸습니다.');
+        Alert.alert('로그인 실패', '아이디나 비밀번호가 틀렸습니다.');
       }
     } 
     catch (error: any) {
@@ -41,9 +46,12 @@ export default function Login() {
       <SafeAreaView style={styles.container}>
             <Text style={styles.login}>로그인</Text>
             <View style={styles.input}>
-            <TextInput style={styles.inputID} placeholder='아이디를 입력하세요' placeholderTextColor="#bea4d2"/>
-            <TextInput style={styles.inputID} placeholder='비밀번호를 입력하세요' placeholderTextColor="#bea4d2"/>
+            <TextInput style={styles.inputID} placeholder='아이디를 입력하세요' placeholderTextColor="#bea4d2"
+            value={userId} onChangeText={setUserId}/>
+            <TextInput style={styles.inputID} placeholder='비밀번호를 입력하세요' placeholderTextColor="#bea4d2"
+            secureTextEntry value={password} onChangeText={setPassword}/>
             </View>
+            {/* 로그인버튼 수정: onPress={handleLogin} */}
             <TouchableOpacity style={styles.loginbutton} onPress={()=>navigation.navigate('MainApp')}>
                 <Text style={styles.logintext}>로그인</Text> 
             </TouchableOpacity>

@@ -12,33 +12,49 @@ type NavigationProp=NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
 export default function NewUser() {
     const navigation=useNavigation<NavigationProp>();
-    const [selectRole, setRole]=useState<'user'|'guardian'|''>('');
-    const [nickname, setNickname]=useState('');
-    const [userID, setuserID]=useState('');
+    const [user_type, setUserType]=useState<'user'|'guardian'|''>('');
+    const [name, setName]=useState(''); //이름
+    const [username, setUsername]=useState(''); //아이디
     const [password, setPW]=useState('');
     const [checkPW, setCheckPW]=useState('');
+    const [email, setEmail]=useState('');
+    const [birthdate, setBirthdate]=useState('');
+    const [gender, setGender]=useState<'male'|'female'|''>('');
 
     const Signup=async()=>{
         if (password!==checkPW) {
             Alert.alert('비밀번호 불일치');
             return;
     }
-    try{ await API.post('/signup', { nickname, id: userID, password, role: selectRole, });
-    Alert.alert('회원가입 성공');
-    navigation.navigate('Login');
+    try{ 
+        const response=await API.post('/api/people/signup', 
+            { name, password, username, email, user_type, birthdate, gender });
+            if(response.data.message){
+                Alert.alert(response.data.message);
+                navigation.navigate('Login');
+            }
     }
-    catch(error){
-        Alert.alert('회원가입 실패');
+    catch(error: any){
+        if(error.response?.data){
+            const errors=error.response.data;
+            let messages: string[]=[];
+            for(const key in errors){
+                if(Array.isArray(errors[key])) messages.push(`${key}: ${errors[key].join(', ')}`);
+                else messages.push(`${key}: ${errors[key]}`);
+            }
+            Alert.alert('회원가입 실패', messages.join('\n'));
+        }
+        else Alert.alert('회원가입 실패', '회원가입 실패');
         console.error(error);
     }
 };
 const duplicate=async()=>{
-    if(!userID){
+    if(!username){
         Alert.alert('아이디를 입력하세요');
         return;
     }
     try{
-        const response=await API.post('/checkID', {id: userID});
+        const response=await API.post('/checkID', {id: username});
         if(response.data.exists){
             Alert.alert('이미 존재하는 아이디 입니다. ');
         }
@@ -53,8 +69,8 @@ const duplicate=async()=>{
     return(
       <SafeAreaView style={styles.container}>
             <Text style={styles.text}>TodAi에 오신 것을 환영합니다!</Text>
-            <TextInput style={styles.nickname} placeholder='닉네임을 입력하세요' placeholderTextColor="#bea4d2" value={nickname} onChangeText={setNickname}/>
-            <TextInput style={styles.ID} placeholder='아이디를 입력하세요' placeholderTextColor="#bea4d2" value={userID} onChangeText={setuserID}/>
+            <TextInput style={styles.nickname} placeholder='닉네임을 입력하세요' placeholderTextColor="#bea4d2" value={name} onChangeText={setName}/>
+            <TextInput style={styles.ID} placeholder='아이디를 입력하세요' placeholderTextColor="#bea4d2" value={username} onChangeText={setUsername}/>
 
              <TouchableOpacity style={styles.checkID} onPress={duplicate}>
                 <Text style={styles.checkIDtext}>중복{'\n'}확인</Text>
@@ -64,10 +80,10 @@ const duplicate=async()=>{
             {/* <TextInput style={styles.birth} placeholder='YYYY/MM/DD' placeholderTextColor="#bea4d2"/>  */}
             {/* <TextInput style={styles.sex} placeholder='남/여' placeholderTextColor="#bea4d2"/>  */}
 
-            <TouchableOpacity style={[ styles.role1, selectRole==='user'&&{backgroundColor: '#ccc'}]} onPress={()=>setRole('user')}>
+            <TouchableOpacity style={[ styles.role1, user_type==='user'&&{backgroundColor: '#ccc'}]} onPress={()=>setUserType('user')}>
                 <Text style={styles.role1text}>사용자</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[ styles.role2, selectRole==='guardian'&&{backgroundColor: '#ccc'}]} onPress={()=>setRole('guardian')}>
+            <TouchableOpacity style={[ styles.role2, user_type==='guardian'&&{backgroundColor: '#ccc'}]} onPress={()=>setUserType('guardian')}>
                 <Text style={styles.role2text}>보호자</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.finish} onPress={Signup}>
