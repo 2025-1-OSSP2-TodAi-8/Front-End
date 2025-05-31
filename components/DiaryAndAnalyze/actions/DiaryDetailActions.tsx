@@ -1,6 +1,7 @@
-import React from 'react';
+// 파일명: DiaryDetailActions.tsx
+
+import React, { useState } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet, Image, Alert } from 'react-native';
-import DiaryFavoriteButton from './DiaryFavoriteButton';
 
 type Props = {
     date: string;
@@ -9,6 +10,12 @@ type Props = {
 const FAVORITE_API_URL = 'http://121.189.72.83:8888/api/diary/marking';
 
 const DiaryDetailActions = ({ date }: Props) => {
+    // 즐겨찾기 상태를 로컬로 관리
+    const [isFavorite, setIsFavorite] = useState(false);
+    // 메뉴바 표시 여부
+    const [menuVisible, setMenuVisible] = useState(false);
+
+    // 즐겨찾기 토글 핸들러
     const handleFavorite = async () => {
         try {
             const res = await fetch(FAVORITE_API_URL, {
@@ -19,6 +26,7 @@ const DiaryDetailActions = ({ date }: Props) => {
             const data = await res.json();
             console.log('서버 응답:', data, 'status:', res.status);
             if (res.ok && data.success === 1) {
+                setIsFavorite(prev => !prev);
                 Alert.alert('알림', '즐겨찾기 등록/해제 성공!');
             } else {
                 Alert.alert('오류', `즐겨찾기 등록/해제 실패: ${JSON.stringify(data)}`);
@@ -31,9 +39,22 @@ const DiaryDetailActions = ({ date }: Props) => {
 
     return (
         <View style={styles.navBar}>
-            <DiaryFavoriteButton date={date} />
-            <TouchableOpacity style={styles.navItem}>
-                <Image source={require('../../assets/images/save.png')} style={styles.navIconImg} />
+            {/* 즐겨찾기 버튼 (아이콘 + 텍스트) */}
+            <TouchableOpacity style={styles.navItem} onPress={handleFavorite}>
+                <Image
+                    source={
+                        isFavorite
+                            ? require('../../../assets/images/star_filled.png')
+                            : require('../../../assets/images/star_empty.png')
+                    }
+                    style={styles.navIconImg}
+                />
+                <Text style={styles.navLabel}>즐겨찾기</Text>
+            </TouchableOpacity>
+
+            {/* 저장 버튼 (아이콘 + 텍스트) */}
+            <TouchableOpacity style={styles.navItem} onPress={() => Alert.alert('저장', '저장 로직 구현 필요')}>
+                <Image source={require('../../../assets/images/save.png')} style={styles.navIconImg} />
                 <Text style={styles.navLabel}>저장</Text>
             </TouchableOpacity>
         </View>
@@ -41,29 +62,6 @@ const DiaryDetailActions = ({ date }: Props) => {
 };
 
 const styles = StyleSheet.create({
-    actionsContainer: {
-        width: '100%',
-        alignItems: 'center',
-        marginTop: 10,
-        marginBottom: 24,
-    },
-    iconRow: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        marginBottom: 16,
-    },
-    iconButton: {
-        alignItems: 'center',
-        marginHorizontal: 18,
-    },
-    icon: {
-        fontSize: 28,
-        marginBottom: 4,
-    },
-    iconLabel: {
-        fontSize: 12,
-        color: '#6A0DAD',
-    },
     navBar: {
         flexDirection: 'row',
         justifyContent: 'space-around',
@@ -83,9 +81,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flex: 1,
     },
-    navIcon: {
-        fontSize: 28,
-        color: '#6A0DAD',
+    navIconImg: {
+        width: 28,
+        height: 28,
+        resizeMode: 'contain',
         marginBottom: 2,
     },
     navLabel: {
@@ -93,12 +92,6 @@ const styles = StyleSheet.create({
         color: '#6A0DAD',
         fontWeight: 'bold',
     },
-    navIconImg: {
-        width: 28,
-        height: 28,
-        resizeMode: 'contain',
-        marginBottom: 2,
-    },
 });
 
-export default DiaryDetailActions; 
+export default DiaryDetailActions;
