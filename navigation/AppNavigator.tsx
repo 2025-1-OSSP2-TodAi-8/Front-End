@@ -9,6 +9,10 @@ import DiaryAndAnalyzeScreen from '../components/DiaryAndAnalyze/DiaryAndAnalyze
 import EmotionAnalyzeScreen from '../components/DiaryAndAnalyze/chart/EmotionAnalyzeScreen';
 import FavoritesScreen from '../components/Favorites/FavoriteScreen';
 import FavoriteScreenMonth from '../components/Favorites/FavoriteScreenMonth';
+import LoginScreen from '../components/Login/LoginScreen';
+import Login from '../components/Login/Login';
+import SignIn from '../components/Login/SignIn';
+import Conversation from '../components/Record/conversation';
 
 export type RootStackParamList = {
   Main: undefined;
@@ -23,27 +27,39 @@ export type RootStackParamList = {
   EmotionAnalyze: undefined;
   Favorites: undefined;
   MonthDetail: { year: number; month: number };
+  LoginScreen: undefined;
+  Login: undefined;
+  SignIn: undefined;
+  Conversation: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-const AppNavigator: React.FC = () => (
+const AppNavigator: React.FC<{ userToken: string | null, setUserToken: (token: string | null) => void }> = ({ userToken, setUserToken }) => (
   <NavigationContainer>
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {/* 1) 메인 화면 */}
-      <Stack.Screen name="Main" component={MainScreen} />
-
-      {/* 2) 다이어리 상세 화면 */}
-      <Stack.Screen name="DiaryDetail" component={DiaryAndAnalyzeScreen} />
-
-      {/* 3) 감정 분석 화면 */}
-      <Stack.Screen name="EmotionAnalyze" component={EmotionAnalyzeScreen} />
-
-      {/* 4) 즐겨찾기 메인 화면 */}
-      <Stack.Screen name="Favorites" component={FavoritesScreen} />
-
-      {/* 5) 월별 상세 화면 */}
-      <Stack.Screen name="MonthDetail" component={FavoriteScreenMonth} />
+      {userToken ? (
+        <>
+          <Stack.Screen name="Main" component={MainScreen} />
+          <Stack.Screen name="DiaryDetail" component={DiaryAndAnalyzeScreen} />
+          <Stack.Screen name="EmotionAnalyze" component={EmotionAnalyzeScreen} />
+          <Stack.Screen name="Favorites" component={FavoritesScreen} />
+          <Stack.Screen name="MonthDetail" component={FavoriteScreenMonth} />
+          <Stack.Screen name="Conversation" component={Conversation} />
+        </>
+      ) : (
+        <>
+          <Stack.Screen name="LoginScreen">
+            {props => <LoginScreen {...props} setUserToken={setUserToken} />}
+          </Stack.Screen>
+          <Stack.Screen name="Login">
+            {props => <Login {...props} setUserToken={setUserToken} />}
+          </Stack.Screen>
+          <Stack.Screen name="SignIn">
+            {props => <SignIn {...props} setUserToken={setUserToken} />}
+          </Stack.Screen>
+        </>
+      )}
     </Stack.Navigator>
   </NavigationContainer>
 );

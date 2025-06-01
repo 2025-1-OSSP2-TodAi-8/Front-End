@@ -17,34 +17,25 @@ export default function App() {
   // ───────────────────────────────────────────────────────────
   const [userToken, setUserToken] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [showSplash, setShowSplash] = useState<boolean>(true);
 
   useEffect(() => {
     const initialize = async () => {
       const token = await AsyncStorage.getItem('userToken');
       setUserToken(token);
-      setTimeout(() => {
-        setShowSplash(false);
+      if (token) {
+        setTimeout(() => setLoading(false), 1500);
+      } else {
         setLoading(false);
-      }, 1500);
+      }
     };
     initialize();
   }, []);
 
-  // 1-1) Splash 화면
-  if (loading || showSplash) {
+  // 로그인된 상태: Splash → AppNavigator
+  if (userToken && loading) {
     return <SplashScreen />;
   }
 
-  // 1-2) 로그인 화면 (토큰 없으면)
-  if (!userToken) {
-    return <LoginScreen setUserToken={setUserToken} />;
-  }
-
-  // ───────────────────────────────────────────────────────────
-  // 2) 로그인 완료 후: 네비게이터 전체를 렌더
-  // ───────────────────────────────────────────────────────────
-  //    - 이 내부에서 모든 화면 전환(DiaryDetail, EmotionAnalyze, Favorites 등)을
-  //      네비게이터가 담당합니다.
-  return <AppNavigator />;
+  // 네비게이터에 userToken, setUserToken을 prop으로 넘김
+  return <AppNavigator userToken={userToken} setUserToken={setUserToken} />;
 }

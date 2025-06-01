@@ -18,6 +18,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 // 네비게이터 파라미터 타입을 import (경로는 프로젝트에 따라 조정)
 import type { RootStackParamList } from '../../navigation/AppNavigator';
+import Logout from '../Login/Logout';
 
 const { width, height } = Dimensions.get('window');
 
@@ -25,9 +26,10 @@ interface MenuBarProps {
     visible: boolean;
     onClose: () => void;
     onFavorites?: () => void;
+    setUserToken: (token: string | null) => void;
 }
 
-const MenuBar: React.FC<MenuBarProps> = ({ visible, onClose, onFavorites }) => {
+const MenuBar: React.FC<MenuBarProps> = ({ visible, onClose, onFavorites, setUserToken }) => {
     // 네비게이션 객체 가져오기
     const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
@@ -70,7 +72,7 @@ const MenuBar: React.FC<MenuBarProps> = ({ visible, onClose, onFavorites }) => {
                     <Text style={styles.logo}>TodAi</Text>
 
                     <View style={styles.menuList}>
-                        {/* “감정 캘린더” 눌렀을 때 Main 화면으로 네비게이트 */}
+                        {/* "감정 캘린더" 눌렀을 때 Main 화면으로 네비게이트 */}
                         <MenuItem
                             label="감정 캘린더"
                             onPress={() => {
@@ -79,18 +81,16 @@ const MenuBar: React.FC<MenuBarProps> = ({ visible, onClose, onFavorites }) => {
                             }}
                         />
 
-                        {/* “기록하기” (원하는 화면으로 연결) */}
+                        {/* "기록하기" (원하는 화면으로 연결) */}
                         <MenuItem
                             label="기록하기"
                             onPress={() => {
                                 onClose();
-                                // 예: 기록하기 화면이 "DiaryDetail"이라면 아래와 같이 호출
-                                // navigation.navigate('DiaryDetail', { date: '2025-01-01', emotion: '', content: '', fromYear: 2025, fromMonth: 1, fromDate: '2025-01-01' });
-                                // 현재 예제에서는 별도 연결이 필요 없으면 그냥 닫기만 해도 됩니다.
+                                navigation.navigate('Conversation');
                             }}
                         />
 
-                        {/* “즐겨찾기 한 감정” 눌렀을 때 Favorites 화면으로 네비게이트 */}
+                        {/* "즐겨찾기 한 감정" 눌렀을 때 Favorites 화면으로 네비게이트 */}
                         <MenuItem
                             label="즐겨찾기 한 감정"
                             onPress={() => {
@@ -104,7 +104,7 @@ const MenuBar: React.FC<MenuBarProps> = ({ visible, onClose, onFavorites }) => {
                             }}
                         />
 
-                        {/* “마이 페이지” (원하는 화면으로 연결) */}
+                        {/* "마이 페이지" (원하는 화면으로 연결) */}
                         <MenuItem
                             label="마이 페이지"
                             onPress={() => {
@@ -113,7 +113,7 @@ const MenuBar: React.FC<MenuBarProps> = ({ visible, onClose, onFavorites }) => {
                             }}
                         />
 
-                        {/* “환경설정” (원하는 화면으로 연결) */}
+                        {/* "환경설정" (원하는 화면으로 연결) */}
                         <MenuItem
                             label="환경설정"
                             onPress={() => {
@@ -121,6 +121,9 @@ const MenuBar: React.FC<MenuBarProps> = ({ visible, onClose, onFavorites }) => {
                                 // navigation.navigate('Settings'); // 예시
                             }}
                         />
+
+                        {/* 로그아웃 버튼 */}
+                        <Logout setUserToken={setUserToken} />
                     </View>
                 </SafeAreaView>
             </Animated.View>
