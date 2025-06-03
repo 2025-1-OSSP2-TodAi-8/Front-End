@@ -1,6 +1,6 @@
 // 파일: components/Favorites/FavoriteScreenMonth.tsx
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
     SafeAreaView,
     View,
@@ -13,6 +13,8 @@ import {
     ScrollView,
 } from 'react-native';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 // React Navigation 훅
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -20,12 +22,15 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 // AppNavigator에서 정의한 타입 import
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 
+
+
 // “MonthDetail” 화면의 route prop 타입
 type MonthDetailRouteProp = RouteProp<RootStackParamList, 'MonthDetail'>;
 // “MonthDetail” 화면의 navigation prop 타입
 type MonthDetailNavProp = NativeStackNavigationProp<RootStackParamList, 'MonthDetail'>;
 
 // 메뉴 아이콘·메뉴바 컴포넌트
+import WithMenuLayout from '../MenuBar/MenuBarLayout';
 import MenuIcon from '../MenuBar/MenuIcon';
 import MenuBar from '../MenuBar/MenuBar';
 
@@ -60,6 +65,14 @@ const FavoriteScreenMonth: React.FC = () => {
     const [entries, setEntries] = useState<MonthEntry[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [menuVisible, setMenuVisible] = useState<boolean>(false);
+
+    // ─── (로그아웃 콜백) ───
+    const handleLogout = useCallback(async (token: string | null) => {
+        if (token === null) {
+            await AsyncStorage.removeItem('accessToken');
+            navigation.replace('LoginScreen');
+        }
+    }, [navigation]);
 
     // “월별 즐겨찾기” API 호출
     useEffect(() => {
@@ -114,57 +127,68 @@ const FavoriteScreenMonth: React.FC = () => {
     };
 
     return (
-        <SafeAreaView style={styles.monthContainer}>
-            {/* ─── 메뉴 아이콘 (좌상단) ─── */}
-            <MenuIcon onPress={() => setMenuVisible(true)} />
-
-            {/* ─── 메뉴바 ─── */}
-            <MenuBar
-                visible={menuVisible}
-                onClose={() => setMenuVisible(false)}
-                onFavorites={() => {
-                    setMenuVisible(false);
-                    navigation.navigate('Favorites');
-                }}
+        <WithMenuLayout setUserToken={handleLogout}>
+            {/* (G) 이제는 MenuIcon을 항상 렌더링 */}
+            <MenuIcon
+                isOpen={menuVisible}               // menuVisible=false → 회전 0도, true → 회전 90도
+                onPress={() => setMenuVisible((v) => !v)}
             />
 
-            <ScrollView contentContainerStyle={styles.monthScroll}>
-                {/* ─── 헤더 영역 ─── */}
-                <View style={styles.headerContainer}>
-                    {/* 1) “년 월” 텍스트: absolute로 전체 가로 폭 잡고 가운데 정렬 */}
-                    <TouchableOpacity
-                        style={styles.headerTextWrapper}
-                        onPress={handleBackToCalendar}
-                    >
-                        <Text style={styles.headerText}>{`${year}년 ${month}월`}</Text>
-                    </TouchableOpacity>
+            {/* (H) 메뉴가 열렸으면 MenuBar 렌더링 */}
+            {menuVisible && (
+                <MenuBar
+                    visible={menuVisible}
+                    onClose={() => setMenuVisible(false)}
+                    onFavorites={() => {
+                        setMenuVisible(false);
+                        navigation.navigate('Favorites');
+                    }}
+                    setUserToken={handleLogout}
+                    isOpen={menuVisible} // true → 메뉴바 안쪽 아이콘 90도 회전
+                    toggleMenu={() => setMenuVisible(false)}
+                />
+            )}
+            <SafeAreaView style={styles.monthContainer}>
 
-                    {/* 2) emotion-box 아이콘: absolute로 오른쪽에 고정 */}
-                    <TouchableOpacity
-                        style={styles.folderIconWrapper}
-                        onPress={handleGoBackToFavorites}
-                    >
-                        <Image source={folderIcon} style={styles.folderIcon} />
-                    </TouchableOpacity>
-                </View>
-                {/* ─────────────────────── */}
 
-                <Text style={styles.titleText}>즐겨찾기 한 감정</Text>
+                <ScrollView contentContainerStyle={styles.monthScroll}>
+                    {/* ─── 헤더 영역 ─── */}
+                    <View style={styles.headerContainer}>
+                        {/* 1) “년 월” 텍스트: absolute로 전체 가로 폭 잡고 가운데 정렬 */}
+                        <TouchableOpacity
+                            style={styles.headerTextWrapper}
+                            onPress={handleBackToCalendar}
+                        >
+                            <Text style={styles.headerText}>{`${year}년 ${month}월`}</Text>
+                        </TouchableOpacity>
 
-                {loading ? (
-                    <ActivityIndicator size="large" color="#999" style={{ marginTop: 20 }} />
-                ) : entries.length === 0 ? (
-                    <Text style={styles.emptyText}>해당 월에 즐겨찾기된 감정이 없습니다.</Text>
-                ) : (
-                    <FlatList
-                        data={entries}
-                        keyExtractor={(item) => item.date}
-                        renderItem={renderEntry}
-                        contentContainerStyle={styles.listContent}
-                    />
-                )}
-            </ScrollView>
-        </SafeAreaView>
+                        {/* 2) emotion-box 아이콘: absolute로 오른쪽에 고정 */}
+                        <TouchableOpacity
+                            style={styles.folderIconWrapper}
+                            onPress={handleGoBackToFavorites}
+                        >
+                            <Image source={folderIcon} style={styles.folderIcon} />
+                        </TouchableOpacity>
+                    </View>
+                    {/* ─────────────────────── */}
+
+                    <Text style={styles.titleText}>즐겨찾기 한 감정</Text>
+
+                    {loading ? (
+                        <ActivityIndicator size="large" color="#999" style={{ marginTop: 20 }} />
+                    ) : entries.length === 0 ? (
+                        <Text style={styles.emptyText}>해당 월에 즐겨찾기된 감정이 없습니다.</Text>
+                    ) : (
+                        <FlatList
+                            data={entries}
+                            keyExtractor={(item) => item.date}
+                            renderItem={renderEntry}
+                            contentContainerStyle={styles.listContent}
+                        />
+                    )}
+                </ScrollView>
+            </SafeAreaView>
+        </WithMenuLayout>
     );
 };
 
@@ -192,27 +216,28 @@ const styles = StyleSheet.create({
         position: 'absolute',
         left: 0,
         right: 0,
+        marginBottom: 2,
         alignItems: 'center',
     },
     headerText: {
         fontSize: 16,
         color: '#666',
         textDecorationLine: 'underline',
-        marginTop: 10,
+        marginTop: 40,
     },
     // emotion-box 아이콘: absolute로 오른쪽 끝에 고정
     folderIconWrapper: {
         position: 'absolute',
         right: 0,
         // vertical center 맞추려면 headerContainer 높이(40)의 중앙에 놓습니다.
-        top: 0,
+        top: 29,
         bottom: 0,
         justifyContent: 'center',
         paddingRight: 8,
     },
     folderIcon: {
-        width: 28,
-        height: 28,
+        width: 32,
+        height: 32,
     },
     // ─────────────
 

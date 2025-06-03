@@ -8,7 +8,8 @@ interface LogoutProps {
 
 const Logout: React.FC<LogoutProps> = ({ setUserToken }) => {
     const handleLogout = useCallback(async () => {
-        await AsyncStorage.removeItem('userToken');
+        await AsyncStorage.removeItem('accessToken');
+        await AsyncStorage.removeItem('refreshToken');
         setUserToken(null);
     }, [setUserToken]);
 

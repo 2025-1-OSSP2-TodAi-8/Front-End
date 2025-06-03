@@ -1,7 +1,7 @@
 // 파일명: FavoritesScreen.tsx
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -11,6 +11,8 @@ import {
     Image,
 } from 'react-native';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 // React Navigation 훅
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -18,12 +20,14 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 // AppNavigator에서 정의한 RootStackParamList 타입을 import
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 
+// 메뉴바 관련 컴포넌트
+import WithMenuLayout from '../MenuBar/MenuBarLayout';
+import MenuBar from '../MenuBar/MenuBar';
+import MenuIcon from '../MenuBar/MenuIcon';
+
 // FavoritesScreen에서 사용할 navigation prop 타입 정의
 type FavoritesNavProp = NativeStackNavigationProp<RootStackParamList, 'Favorites'>;
 
-// 메뉴 아이콘·메뉴바 컴포넌트
-import MenuIcon from '../MenuBar/MenuIcon';
-import MenuBar from '../MenuBar/MenuBar';
 
 // 타이틀 옆에 표시할 폴더 아이콘 (경로는 프로젝트에 맞게 수정)
 const folderIcon = require('../../assets/images/emotion-box.png');
@@ -54,6 +58,13 @@ const FavoritesScreen: React.FC = () => {
     const [emotionMap, setEmotionMap] = useState<{ [key: string]: string[] }>({});
     const [menuVisible, setMenuVisible] = useState<boolean>(false);
 
+    // ─── (로그아웃 콜백) ───
+    const handleLogout = useCallback(async (token: string | null) => {
+        await AsyncStorage.removeItem('accessToken');
+        // 로그아웃 시 무조건 로그인 화면으로 리다이렉트
+        navigation.replace('LoginScreen');
+    }, [navigation]);
+
     // 연도가 바뀔 때마다 API 호출하여 해당 연도 전체의 Month별 감정 정보 가져오기
     useEffect(() => {
         const fetchYearlyEmotion = async () => {
@@ -76,7 +87,7 @@ const FavoritesScreen: React.FC = () => {
         fetchYearlyEmotion();
     }, [year]);
 
-    // API에서 받은 리스트를 “월별로 최대 4개” 형태의 맵(딕셔너리)으로 변환
+    // API에서 받은 리스트를 "월별로 최대 4개" 형태의 맵(딕셔너리)으로 변환
     const getMonthlyEmotionMap = (
         emotionList: { date: string; emotion: string }[]
     ): { [key: string]: string[] } => {
@@ -95,86 +106,98 @@ const FavoritesScreen: React.FC = () => {
     };
 
     return (
-        <View style={styles.container}>
-            {/* ─── 메뉴 아이콘 (좌상단) ─── */}
-            <MenuIcon onPress={() => setMenuVisible(true)} />
-
-            {/* ─── 메뉴바 ─── */}
-            <MenuBar
-                visible={menuVisible}
-                onClose={() => setMenuVisible(false)}
-                onFavorites={() => {
-                    setMenuVisible(false);
-                    // 이미 이 화면이 “즐겨찾기 메인”이므로 추가 동작은 없어도 됩니다.
-                }}
+        <WithMenuLayout setUserToken={handleLogout}>
+            {/* (G) 이제는 MenuIcon을 항상 렌더링 */}
+            <MenuIcon
+                isOpen={menuVisible}               // menuVisible=false → 회전 0도, true → 회전 90도
+                onPress={() => setMenuVisible((v) => !v)}
             />
 
-            {/* ─── 타이틀 영역 ─── */}
-            <View style={styles.titleContainer}>
-                <Text style={styles.titleText}>감정 보관함</Text>
-                <Image
-                    source={folderIcon}
-                    style={styles.titleImage}
-                    resizeMode="contain"
+            {/* (H) 메뉴가 열렸으면 MenuBar 렌더링 */}
+            {menuVisible && (
+                <MenuBar
+                    visible={menuVisible}
+                    onClose={() => setMenuVisible(false)}
+                    onFavorites={() => {
+                        setMenuVisible(false);
+                        navigation.navigate('Favorites');
+                    }}
+                    setUserToken={handleLogout}
+                    isOpen={menuVisible} // true → 메뉴바 안쪽 아이콘 90도 회전
+                    toggleMenu={() => setMenuVisible(false)}
+                />
+            )}
+            <View style={styles.container}>
+
+
+
+                {/* ─── 타이틀 영역 ─── */}
+                <View style={styles.titleContainer}>
+                    <Text style={styles.titleText}>감정 보관함</Text>
+                    <Image
+                        source={folderIcon}
+                        style={styles.titleImage}
+                        resizeMode="contain"
+                    />
+                </View>
+
+                {/* ─── 연도 변경 버튼 ─── */}
+                <View style={styles.yearRow}>
+                    <TouchableOpacity onPress={() => setYear((y) => y - 1)}>
+                        <Text style={styles.arrow}>{'<'}</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.yearText}>{year}년</Text>
+                    <TouchableOpacity onPress={() => setYear((y) => y + 1)}>
+                        <Text style={styles.arrow}>{'>'}</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* ─── 월별 카드 그리드 ─── */}
+                <FlatList
+                    data={months}
+                    numColumns={2}
+                    keyExtractor={(item) => item}
+                    contentContainerStyle={styles.grid}
+                    renderItem={({ item, index }) => {
+                        // index 0→1월, 1→2월, …, 11→12월
+                        const monthNumber = index + 1;
+                        const emotionList: string[] = emotionMap[item] || [];
+
+                        return (
+                            <TouchableOpacity
+                                style={styles.itemContainer}
+                                activeOpacity={0.7}
+                                // 월(item)을 누르면 "MonthDetail" 화면으로 이동
+                                onPress={() =>
+                                    navigation.navigate('MonthDetail', {
+                                        year: year,
+                                        month: monthNumber,
+                                    })
+                                }
+                            >
+                                <View style={styles.monthCard}>
+                                    <View style={styles.innerGrid}>
+                                        {emotionList.slice(0, 4).map((emo, idx) => {
+                                            const imgSrc = emotionImageMap[emo];
+                                            if (!imgSrc) return null;
+                                            return (
+                                                <Image
+                                                    key={idx}
+                                                    source={imgSrc}
+                                                    style={styles.smallEmotionImage}
+                                                    resizeMode="contain"
+                                                />
+                                            );
+                                        })}
+                                    </View>
+                                </View>
+                                <Text style={styles.monthText}>{item}</Text>
+                            </TouchableOpacity>
+                        );
+                    }}
                 />
             </View>
-
-            {/* ─── 연도 변경 버튼 ─── */}
-            <View style={styles.yearRow}>
-                <TouchableOpacity onPress={() => setYear((y) => y - 1)}>
-                    <Text style={styles.arrow}>{'<'}</Text>
-                </TouchableOpacity>
-                <Text style={styles.yearText}>{year}년</Text>
-                <TouchableOpacity onPress={() => setYear((y) => y + 1)}>
-                    <Text style={styles.arrow}>{'>'}</Text>
-                </TouchableOpacity>
-            </View>
-
-            {/* ─── 월별 카드 그리드 ─── */}
-            <FlatList
-                data={months}
-                numColumns={2}
-                keyExtractor={(item) => item}
-                contentContainerStyle={styles.grid}
-                renderItem={({ item, index }) => {
-                    // index 0→1월, 1→2월, …, 11→12월
-                    const monthNumber = index + 1;
-                    const emotionList: string[] = emotionMap[item] || [];
-
-                    return (
-                        <TouchableOpacity
-                            style={styles.itemContainer}
-                            activeOpacity={0.7}
-                            // 월(item)을 누르면 “MonthDetail” 화면으로 이동
-                            onPress={() =>
-                                navigation.navigate('MonthDetail', {
-                                    year: year,
-                                    month: monthNumber,
-                                })
-                            }
-                        >
-                            <View style={styles.monthCard}>
-                                <View style={styles.innerGrid}>
-                                    {emotionList.slice(0, 4).map((emo, idx) => {
-                                        const imgSrc = emotionImageMap[emo];
-                                        if (!imgSrc) return null;
-                                        return (
-                                            <Image
-                                                key={idx}
-                                                source={imgSrc}
-                                                style={styles.smallEmotionImage}
-                                                resizeMode="contain"
-                                            />
-                                        );
-                                    })}
-                                </View>
-                            </View>
-                            <Text style={styles.monthText}>{item}</Text>
-                        </TouchableOpacity>
-                    );
-                }}
-            />
-        </View>
+        </WithMenuLayout>
     );
 };
 
@@ -196,9 +219,10 @@ const styles = StyleSheet.create({
         color: '#6A0DAD',
     },
     titleImage: {
-        width: 28,
-        height: 28,
+        width: 30,
+        height: 30,
         marginLeft: 8,
+        marginTop: 6,
     },
     yearRow: {
         flexDirection: 'row',

@@ -4,6 +4,7 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import API from './api/axios';
 
 import SplashScreen from './components/Splash/SplashScreen';
 import LoginScreen from './components/Login/LoginScreen';
@@ -19,20 +20,47 @@ export default function App() {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    const validateToken = async (token: string) => {
+      try {
+        // 서버에 토큰 유효성 검증 요청 (GET /api/people/)
+        const response = await API.get('/api/people/', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        return response.status === 200;
+      } catch (error) {
+        console.error('Token validation failed:', error);
+        return false;
+      }
+    };
+
     const initialize = async () => {
-      const token = await AsyncStorage.getItem('userToken');
-      setUserToken(token);
+      const token = await AsyncStorage.getItem('accessToken');
+
       if (token) {
-        setTimeout(() => setLoading(false), 1500);
+        // 토큰이 있으면 서버에서 유효성 검증
+        const isValid = await validateToken(token);
+        if (isValid) {
+          setUserToken(token);
+          setLoading(false);
+        } else {
+          // 토큰이 유효하지 않으면 삭제하고 로그인 화면으로
+          await AsyncStorage.removeItem('accessToken');
+          await AsyncStorage.removeItem('refreshToken');
+          setUserToken(null);
+          setTimeout(() => setLoading(false), 1500);
+        }
       } else {
-        setLoading(false);
+        // 토큰이 없으면 스플래시 화면 표시
+        setTimeout(() => setLoading(false), 1500);
       }
     };
     initialize();
   }, []);
 
-  // 로그인된 상태: Splash → AppNavigator
-  if (userToken && loading) {
+  // Show splash screen only when loading and no token
+  if (loading && !userToken) {
     return <SplashScreen />;
   }
 

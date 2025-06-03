@@ -1,117 +1,76 @@
-import React from 'react';
-import { View, Text, Dimensions, StyleSheet } from 'react-native';
-import Svg, { Polygon, Line, Text as SvgText, Circle } from 'react-native-svg';
+// components/DiaryAndAnalyze/emotion/DiaryRadarChartView.tsx
+import React from "react";
+import { View, Text, Dimensions, StyleSheet } from "react-native";
+import SpiderGraph from "./SpiderGraph";
 
-const emotionLabels = ['중립', '놀람', '화남', '행복', '슬픔', '혐오', '공포'];
-const screenWidth = Dimensions.get('window').width;
+const screenWidth = Dimensions.get("window").width;
 
 interface DiaryRadarChartViewProps {
-    emotion: number[];
-    text: string;
+    // API 응답: [놀람, 화남, 행복, 슬픔, 혐오, 공포]
+    emotion?: number[];
+    text?: string;
 }
 
-const RadarChart: React.FC<{ data: number[]; labels: string[]; size: number }> = ({ data, labels, size }) => {
-    const center = size / 2;
-    const radius = size / 2 - 30;
-    const angleStep = (2 * Math.PI) / labels.length;
-    const maxValue = Math.max(1, ...data);
+// 화면에 그릴 레이블 (기쁨 대신 '화남'부터 6개)
+const emotionLabels = ["화남", "슬픔", "혐오", "행복", "공포", "놀람"];
+// API 순서
+const apiOrder = ["놀람", "화남", "행복", "슬픔", "혐오", "공포"];
 
-    // 각 축의 끝점 좌표 계산
-    const points = labels.map((_, i) => {
-        const angle = i * angleStep - Math.PI / 2;
-        return {
-            x: center + radius * Math.cos(angle),
-            y: center + radius * Math.sin(angle),
-        };
-    });
+const DiaryRadarChartView: React.FC<DiaryRadarChartViewProps> = ({
+    emotion,
+    text,
+}) => {
+    // 1) emotion이 6개 숫자로 되어 있는지 검사
+    const safeEmotion: number[] =
+        Array.isArray(emotion) && emotion.length === apiOrder.length
+            ? emotion.map((v) => (typeof v === "number" && !isNaN(v) ? v : 0))
+            : [0, 0, 0, 0, 0, 0];
 
-    // 데이터 값에 따른 좌표 계산
-    const dataPoints = data.map((v, i) => {
-        const angle = i * angleStep - Math.PI / 2;
-        const r = (v / maxValue) * radius;
-        return {
-            x: center + r * Math.cos(angle),
-            y: center + r * Math.sin(angle),
-        };
-    });
+    // 2) SpiderGraph에 들어갈 데이터 포맷으로 변환 ({화남:0~100, 슬픔:0~100, …})
+    const transformedData = [
+        emotionLabels.reduce((acc, label) => {
+            const idx = apiOrder.indexOf(label);
+            const rawValue = idx !== -1 && safeEmotion.length > idx ? safeEmotion[idx] : 0;
+            acc[label] = rawValue * 100; // 0~100 스케일
+            return acc;
+        }, {} as { [key: string]: number }),
+    ];
 
-    // SVG Polygon 포맷
-    const dataPolygon = dataPoints.map(p => `${p.x},${p.y}`).join(' ');
-
-    return (
-        <Svg width={size} height={size}>
-            {/* 축선 */}
-            {points.map((p, i) => (
-                <Line
-                    key={i}
-                    x1={center}
-                    y1={center}
-                    x2={p.x}
-                    y2={p.y}
-                    stroke="#ccc"
-                    strokeWidth={1}
-                />
-            ))}
-            {/* 외곽선 */}
-            <Polygon
-                points={points.map(p => `${p.x},${p.y}`).join(' ')}
-                fill="none"
-                stroke="#aaa"
-                strokeWidth={2}
-            />
-            {/* 데이터 영역 */}
-            <Polygon
-                points={dataPolygon}
-                fill="#6A0DAD55"
-                stroke="#6A0DAD"
-                strokeWidth={2}
-            />
-            {/* 꼭짓점 점 */}
-            {dataPoints.map((p, i) => (
-                <Circle key={i} cx={p.x} cy={p.y} r={4} fill="#6A0DAD" />
-            ))}
-            {/* 라벨 */}
-            {points.map((p, i) => (
-                <SvgText
-                    key={i}
-                    x={p.x}
-                    y={p.y - 10}
-                    fontSize="14"
-                    fontWeight="bold"
-                    fill="#34495E"
-                    textAnchor="middle"
-                >
-                    {labels[i]}
-                </SvgText>
-            ))}
-        </Svg>
-    );
-};
-
-const DiaryRadarChartView: React.FC<DiaryRadarChartViewProps> = ({ emotion, text }) => {
-    // emotion이 undefined이거나 배열이 아니면 기본값으로 대체
-    const safeEmotion = Array.isArray(emotion) ? emotion : [0, 0, 0, 0, 0, 0, 0];
+    // 3) SpiderGraph 옵션
+    const maxValue = 100;
+    const chartOptions = {
+        colorList: ["#6A0DAD"],
+        dotList: [false],
+        scaleCount: 5,
+        numberInterval: 20,
+    };
 
     return (
         <View style={styles.container}>
-            <RadarChart data={safeEmotion.slice(0, 7)} labels={emotionLabels} size={screenWidth - 40} />
-            <Text style={styles.text}>{text}</Text>
+            <SpiderGraph
+                data={transformedData}
+                graphSize={screenWidth - 40}
+                options={{
+                    ...chartOptions,
+                    max: maxValue
+                }}
+            />
+            {text && <Text style={styles.text}>{text}</Text>}
         </View>
     );
 };
 
+export default DiaryRadarChartView;
+
 const styles = StyleSheet.create({
     container: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 20,
+        alignItems: "center",
+        marginTop: -170,
     },
     text: {
         fontSize: 16,
-        marginTop: 16,
-        color: '#333',
-        textAlign: 'center',
+        marginTop: 12,
+        color: "#333",
+        textAlign: "center",
     },
 });
-
-export default DiaryRadarChartView;
