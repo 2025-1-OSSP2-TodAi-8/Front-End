@@ -6,13 +6,13 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import MainScreen from '../components/Main/MainScreen';
 import DiaryAndAnalyzeScreen from '../components/DiaryAndAnalyze/DiaryAndAnalyzeScreen';
-import EmotionAnalyzeScreen from '../components/DiaryAndAnalyze/chart/EmotionAnalyzeScreen';
 import FavoritesScreen from '../components/Favorites/FavoriteScreen';
 import FavoriteScreenMonth from '../components/Favorites/FavoriteScreenMonth';
 import LoginScreen from '../components/Login/LoginScreen';
 import Login from '../components/Login/Login';
 import SignIn from '../components/Login/SignIn';
 import Conversation from '../components/Record/conversation';
+//import GuardianSearch from '../components/Guardian/Search';
 
 export type RootStackParamList = {
   Main: undefined;
@@ -30,7 +30,8 @@ export type RootStackParamList = {
   LoginScreen: undefined;
   Login: undefined;
   SignIn: undefined;
-  Conversation: undefined;
+  Conversation: { date: string } | undefined;
+  GuardianSearch: undefined; // 보호자 전용 화면
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -40,9 +41,10 @@ const AppNavigator: React.FC<{ userToken: string | null, setUserToken: (token: s
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {userToken ? (
         <>
-          <Stack.Screen name="Main" component={MainScreen} />
+          <Stack.Screen name="Main">
+            {props => <MainScreen {...props} setUserToken={setUserToken} />}
+          </Stack.Screen>
           <Stack.Screen name="DiaryDetail" component={DiaryAndAnalyzeScreen} />
-          <Stack.Screen name="EmotionAnalyze" component={EmotionAnalyzeScreen} />
           <Stack.Screen name="Favorites" component={FavoritesScreen} />
           <Stack.Screen name="MonthDetail" component={FavoriteScreenMonth} />
           <Stack.Screen name="Conversation" component={Conversation} />

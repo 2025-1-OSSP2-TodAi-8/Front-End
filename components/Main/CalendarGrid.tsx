@@ -66,7 +66,11 @@ const CalendarGrid = ({
         }}
         style={styles.dayWrapper}
       >
-        <View style={[styles.circle, isSelected && !isToday && styles.selectedCircle]}>
+        <View style={[
+          styles.circle,
+          isToday && !isSelected && styles.todayCircle,
+          isSelected && styles.selectedCircle
+        ]}>
           {emotion && emotionImageMap[emotion] ? (
             <>
               <Image source={emotionImageMap[emotion]} style={styles.emojiImg} />
@@ -130,10 +134,11 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     width: '100%',
     paddingHorizontal: 0,
+    paddingTop: 10,
   },
   dayWrapper: {
     width: boxSize,
-    height: boxSize + 12,  // 조금 더 높게
+    height: boxSize + 15,  // 조금 더 높게
     justifyContent: 'center',
     alignItems: 'center',
     marginVertical: 8,
@@ -188,10 +193,14 @@ const styles = StyleSheet.create({
     height: 24,
     resizeMode: 'contain',
     position: 'absolute',
-    top: -18,
+    top: -16,
     left: '50%',
     transform: [{ translateX: -24 }],
     zIndex: 2,
+  },
+  todayCircle: {
+    borderWidth: 2,
+    borderColor: '#DCBEFA',
   },
 });
 

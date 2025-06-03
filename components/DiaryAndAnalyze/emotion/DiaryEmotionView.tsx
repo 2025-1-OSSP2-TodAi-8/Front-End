@@ -1,5 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../../navigation/AppNavigator';
 
 const emotionImageMap: { [key: string]: any } = {
     중립: require('../../../assets/images/neutral2.png'),
@@ -16,9 +19,11 @@ type Props = {
     text: string;
     onPrevDate?: () => void;
     onNextDate?: () => void;
+    currentDate: string;
 };
 
-const DiaryEmotionView = ({ emotion, text, onPrevDate, onNextDate }: Props) => {
+const DiaryEmotionView = ({ emotion, text, onPrevDate, onNextDate, currentDate }: Props) => {
+    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     return (
         <View style={{ flex: 1, backgroundColor: '#F5E8FF' }}>
             <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: 'center', paddingBottom: 100 }}>
@@ -40,7 +45,6 @@ const DiaryEmotionView = ({ emotion, text, onPrevDate, onNextDate }: Props) => {
                                 <Text style={styles.arrowText}>{'>'}</Text>
                             </TouchableOpacity>
                         </View>
-                        <Text style={styles.statusText}>오늘의 감정상태는...</Text>
                     </View>
                     <View style={styles.contentSection}>
                         <Text style={styles.statusMessage}>{emotion ? `오늘은 ${emotion}한 하루였어요!` : '오늘은 어떤 하루를 보냈을까요?'}</Text>
@@ -48,7 +52,7 @@ const DiaryEmotionView = ({ emotion, text, onPrevDate, onNextDate }: Props) => {
                         {!emotion && (
                             <TouchableOpacity
                                 style={styles.recordButton}
-                                onPress={() => Alert.alert('녹음하러 가기', '녹음 페이지로 이동(추후 구현)')}
+                                onPress={() => navigation.navigate('Conversation', { date: currentDate })}
                             >
                                 <Text style={styles.recordButtonText}>녹음하러 가기</Text>
                             </TouchableOpacity>
@@ -71,7 +75,7 @@ const styles = StyleSheet.create({
     container: {
         width: '100%',
         alignItems: 'center',
-        paddingTop: 10,
+        paddingTop: 5,
     },
     headerSection: {
         alignItems: 'center',
@@ -82,35 +86,31 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 8,
+        marginBottom: 4,
         height: 90,
     },
     emojiImg: {
-        width: 90,
-        height: 90,
+        width: 100,
+        height: 100,
         resizeMode: 'contain',
-        marginBottom: 8,
-    },
-    statusText: {
-        fontSize: 16,
-        color: '#6A0DAD',
-        marginBottom: 12,
-        marginTop: 24,
+        marginBottom: 6,
     },
     contentSection: {
         backgroundColor: '#fff',
         borderRadius: 16,
         padding: 24,
+        paddingHorizontal: 24, // 좌우 내부 여백을 위해 추가
         marginHorizontal: 24,
         marginBottom: 24,
         alignItems: 'center',
-        width: '85%',
+        width: '95%',         // 화면 너비에 꽉 맞춤
         shadowColor: '#000',
         shadowOpacity: 0.05,
         shadowRadius: 8,
         elevation: 2,
         position: 'relative',
         paddingBottom: 80,
+        marginTop: 20,
     },
     statusMessage: {
         fontSize: 16,

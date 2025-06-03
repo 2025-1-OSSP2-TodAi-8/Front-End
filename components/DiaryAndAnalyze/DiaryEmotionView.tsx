@@ -1,4 +1,6 @@
+// ─────────────────────────────────────────────────────────────────────
 // 파일: components/DiaryAndAnalyze/emotion/DiaryEmotionView.tsx
+// ─────────────────────────────────────────────────────────────────────
 
 import React, { useEffect, useState } from 'react';
 import {
@@ -24,8 +26,8 @@ const emotionImageMap: { [key: string]: any } = {
     공포: require('../../../assets/images/fear2.png'),
 };
 
-// “일별 감정 조회” 전용 API URL
-const EMOTION_DAY_API = 'http://121.189.72.83:8888/api/emotion/day';
+// “일별 감정 조회” 전용 API URL (baseURL은 API 인스턴스가 붙여줍니다)
+const EMOTION_DAY_PATH = '/api/emotion/day';
 
 type Props = {
     date: string; // YYYY-MM-DD 형식 문자열
@@ -49,6 +51,8 @@ function padDate(dateStr: string) {
     const [y, m, d] = dateStr.split('-');
     return [y, m.padStart(2, '0'), d.padStart(2, '0')].join('-');
 }
+
+import API from '../../api/axios'; // ← 수정된 부분: fetch → API 인스턴스 사용
 
 const DiaryEmotionView = ({ date, onBack }: Props) => {
     // 현재 보고 있는 날짜(YYYY-MM-DD)
@@ -83,13 +87,14 @@ const DiaryEmotionView = ({ date, onBack }: Props) => {
             const d = Number(dStr);
 
             try {
-                const res = await fetch(EMOTION_DAY_API, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ year: y, month: m, day: d }),
+                // ---------------------------------------------
+                // 주요 변경사항: fetch → API.post 사용
+                // ---------------------------------------------
+                const response = await API.post(EMOTION_DAY_PATH, {
+                    year: y,
+                    month: m,
+                    day: d,
                 });
-                const json = await res.json();
-
                 // 예상 응답 예시:
                 // {
                 //   "date": "2024-05-01",
@@ -98,12 +103,19 @@ const DiaryEmotionView = ({ date, onBack }: Props) => {
                 //   "text": "오늘은 정말 좋은 하루를 보냈네요!" // 일기 요약
                 // }
 
-                // 대표 감정
-                const emo = typeof json.emotion === 'string' ? json.emotion.trim() : '';
-                setEmotion(emo);
+                if (response.status === 200 && response.data) {
+                    const json = response.data;
 
-                // 일기 요약(text) 필드는 없을 수도 있으므로, 빈 문자열 처리
-                setDiaryText(typeof json.text === 'string' ? json.text : '');
+                    // 대표 감정
+                    const emo = typeof json.emotion === 'string' ? json.emotion.trim() : '';
+                    setEmotion(emo);
+
+                    // 일기 요약(text) 필드는 없을 수도 있으므로, 빈 문자열 처리
+                    setDiaryText(typeof json.text === 'string' ? json.text : '');
+                } else {
+                    setEmotion('');
+                    setDiaryText('');
+                }
             } catch (err) {
                 console.error('일별 감정 조회 실패:', err);
                 setEmotion('');

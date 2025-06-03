@@ -1,19 +1,23 @@
-// components/AudioRecorder.tsx
+// 파일: components/AudioRecorder.tsx
+
 import React, { useEffect, useState } from 'react';
-import { View, Button, PermissionsAndroid, Platform } from 'react-native';
+import { PermissionsAndroid, Platform } from 'react-native';
 import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 import RNFS from 'react-native-fs';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const audioRecorderPlayer = new AudioRecorderPlayer();
 
 interface AudioRecorderProps {
   start: boolean;
+  onFinish?: () => void;
 }
 
-const AudioRecorder: React.FC<AudioRecorderProps> = ({ start }) => {
+const AudioRecorder: React.FC<AudioRecorderProps> = ({ start, onFinish }) => {
   const [recording, setRecording] = useState(false);
   const [recordedFile, setRecordedFile] = useState<string | null>(null);
 
+  // ─── 권한 요청 ─────────────────────────────────────────────────────
   const requestPermissions = async () => {
     if (Platform.OS === 'android') {
       const granted = await PermissionsAndroid.request(
@@ -29,7 +33,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ start }) => {
     return true;
   };
 
-
+  // ─── 녹음 시작 ─────────────────────────────────────────────────────
   const startRecording = async () => {
     const granted = await requestPermissions();
     if (!granted) return;
@@ -40,7 +44,8 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ start }) => {
     const formattedTime = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
     const fileName = `recording-${formattedDate}_${formattedTime}.mp4`;
 
-    const filePath = `${RNFS.CachesDirectoryPath}/${fileName}`; // ✅ 여기 추가됨
+    // 캐시 디렉토리에 저장 경로 생성
+    const filePath = `${RNFS.CachesDirectoryPath}/${fileName}`;
 
     const uri = await audioRecorderPlayer.startRecorder(filePath);
     setRecording(true);
@@ -48,9 +53,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ start }) => {
     console.log('녹음 시작됨:', uri);
   };
 
-
-
-
+  // ─── 녹음 종료 ─────────────────────────────────────────────────────
   const stopRecording = async () => {
     const result = await audioRecorderPlayer.stopRecorder();
     setRecording(false);
@@ -58,23 +61,30 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ start }) => {
     console.log('녹음 저장됨:', result);
 
     await uploadRecording(result);
+    if (onFinish) onFinish();
   };
 
-
+  // ─── 녹음 파일 업로드 ─────────────────────────────────────────────────
   const uploadRecording = async (filePath: string) => {
-    if (!recordedFile) return;
+    if (!filePath) return;
 
+    // AsyncStorage에서 토큰을 꺼냄 (로그인 시 저장했다고 가정)
+    const token = await AsyncStorage.getItem('userToken');
+    if (!token) {
+      console.warn('No user token found. Cannot upload.');
+      return;
+    }
+
+    // 날짜 포맷 YYYY-MM-DD
     const now = new Date();
     const pad = (n: number) => n.toString().padStart(2, '0');
     const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
     const formattedTime = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
     const fileName = `recording-${formattedDate}_${formattedTime}.mp4`;
 
+    // FormData에 date, audio 필드만 추가 (user_id 제거)
     const data = new FormData();
-
-    //서버 필드들
-    data.append('user_id', '1');
-    data.append('date', formattedDate); // 예: 2024-01-30
+    data.append('date', formattedDate); // Request body의 date 필드
     data.append('audio', {
       uri: filePath,
       type: 'audio/mp4',
@@ -86,32 +96,28 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ start }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`, // 토큰을 Authorization 헤더에 붙여서 전송
         },
         body: data,
       });
 
-      const result = await response.json(); // 실제 백엔드라면 JSON으로 반환될 가능성 ↑
+      const result = await response.json();
       console.log('서버 응답:', result);
     } catch (error) {
       console.error('업로드 실패:', error);
     }
   };
 
+  // ─── start prop이 true로 바뀌면 녹음 시작, false면 녹음 종료 ─────────────
   useEffect(() => {
     if (start && !recording) {
       startRecording();
+    } else if (!start && recording) {
+      stopRecording();
     }
-    else if (!start && recording) stopRecording();
   }, [start]);
 
   return null;
-
-  // return (
-  //   <View>
-  //     <Button title={recording ? '녹음 중...' : '녹음 시작'} onPress={startRecording} disabled={recording} />
-  //     <Button title="녹음 종료" onPress={stopRecording} disabled={!recording}  />
-  //   </View>
-  // );
 };
 
 export default AudioRecorder;
