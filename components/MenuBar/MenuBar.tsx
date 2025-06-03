@@ -123,15 +123,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
                         label="마이 페이지"
                         onPress={() => {
                             onClose();
-                            // navigation.navigate('MyPage');
-                        }}
-                    />
-                    <MenuItem
-                        icon={settingsIcon}
-                        label="환경설정"
-                        onPress={() => {
-                            onClose();
-                            // navigation.navigate('Settings');
+                            navigation.navigate('Mypage');
                         }}
                     />
                 </View>
