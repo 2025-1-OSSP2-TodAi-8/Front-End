@@ -109,8 +109,6 @@ function Conversation({navigation}: {navigation: any}) {
                 <Text style={styles.summarytext}>{summarytext||'@님의 오늘의 이야기를 더 들을 수 있을까요?'}</Text>
             </Animated.View> 
         )}
-        {/* 알림 테스트 버튼 */}
-        <Button title="test" onPress={()=>LocalNotification("test", "alert")}/>
     </SafeAreaView>
   );
 };
