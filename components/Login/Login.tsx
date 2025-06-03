@@ -74,13 +74,15 @@ export default function Login({ setUserToken }: LoginProps) {
                     // 일반 사용자 → Main 화면으로 이동
                     navigation.navigate('Main');
                 } else if (user_type === 'guardian') {
-                    console.log("가디언 도착함")
+                    // eslint-disable-next-line quotes
+                    console.log("가디언 도착함");
                     // 보호자 → GuardianSearch 화면으로 이동
                     navigation.navigate('GuardianSearch');
                 } else {
                     // 혹시 예외적인 값이 오면 기본은 Main으로
                     navigation.navigate('Main');
-                    console.log("예외 적인 값 도착함")
+                    // eslint-disable-next-line quotes
+                    console.log("예외 적인 값 도착함");
                 }
             } else {
                 Alert.alert('로그인 실패', '아이디 또는 비밀번호가 올바르지 않습니다.');
@@ -213,4 +215,6 @@ const styles = StyleSheet.create({
         fontSize: SCREEN_WIDTH * 0.035,
         textDecorationLine: 'underline',
     },
-});
+}
+// eslint-disable-next-line eol-last
+);
