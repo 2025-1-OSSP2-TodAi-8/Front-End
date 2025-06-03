@@ -12,6 +12,7 @@ import LoginScreen from '../components/Login/LoginScreen';
 import Login from '../components/Login/Login';
 import SignIn from '../components/Login/SignIn';
 import Conversation from '../components/Record/conversation';
+import Mypage from '../components/Mypage/Mypage';
 //import GuardianSearch from '../components/Guardian/Search';
 
 export type RootStackParamList = {
@@ -32,6 +33,7 @@ export type RootStackParamList = {
   SignIn: undefined;
   Conversation: { date: string } | undefined;
   GuardianSearch: undefined; // 보호자 전용 화면
+  Mypage: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -48,6 +50,7 @@ const AppNavigator: React.FC<{ userToken: string | null, setUserToken: (token: s
           <Stack.Screen name="Favorites" component={FavoritesScreen} />
           <Stack.Screen name="MonthDetail" component={FavoriteScreenMonth} />
           <Stack.Screen name="Conversation" component={Conversation} />
+          <Stack.Screen name="Mypage" component={Mypage}/>
         </>
       ) : (
         <>
