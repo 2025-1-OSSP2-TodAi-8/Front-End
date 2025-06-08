@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Image } from 'react-native';
 
@@ -12,16 +13,6 @@ type Props = {
   emotionImageMap: { [key: string]: any };
 };
 
-const emotionImageMap: { [key: string]: any } = {
-  중립: require('../../assets/images/neutral.png'),
-  놀람: require('../../assets/images/surprise.png'),
-  화남: require('../../assets/images/angry.png'),
-  행복: require('../../assets/images/happy.png'),
-  슬픔: require('../../assets/images/sad.png'),
-  혐오: require('../../assets/images/disgust.png'),
-  공포: require('../../assets/images/fear.png'),
-};
-
 const CalendarGrid = ({
   year,
   month,
@@ -30,35 +21,58 @@ const CalendarGrid = ({
   setSelectedDate,
   emotionImageMap,
 }: Props) => {
+  // 해당 달의 일수
   const daysInMonth = new Date(year, month, 0).getDate();
-  const firstDay = new Date(year, month - 1, 1).getDay(); // 0(일) ~ 6(토)
+
+  // 해당 달의 첫 번째 요일 (0=일요일 … 6=토요일)
+  const firstDay = new Date(year, month - 1, 1).getDay();
 
   const weekDays = ['일', '월', '화', '수', '목', '금', '토'];
 
-  // 오늘 날짜 계산
+  // ───────────────────────────────────────────────────────────────────
+  // 숫자로 오늘을 계산하기
   const today = new Date();
-  const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const todayYearNum = today.getFullYear();
+  const todayMonthNum = today.getMonth() + 1; // JS의 getMonth()는 0~11 이므로 +1
+  const todayDateNum = today.getDate();
 
+  // ───────────────────────────────────────────────────────────────────
+  // 날짜별 감정 찾기 (원래대로 문자열 비교)
   const getEmotionByDate = (day: number) => {
-    const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    return emotionData.find((item) => item.date === dateString)?.emotion ?? null;
+    const mm = String(month).padStart(2, '0');
+    const dd = String(day).padStart(2, '0');
+    const dateString = `${year}-${mm}-${dd}`;
+    const found = emotionData.find((item) => item.date === dateString);
+    return found ? found.emotion : null;
   };
 
+  // ───────────────────────────────────────────────────────────────────
+  // 개별 날짜 렌더링 함수
   const renderDay = (day: number | null, index: number) => {
     if (day === null) {
+      // 빈 칸
       return <View key={`empty-${index}`} style={styles.emptyBox} />;
     }
 
-    const dateString = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    // “YYYY-MM-DD” 포맷 (선택된 날짜 체크용)
+    const mmStr = String(month).padStart(2, '0');
+    const ddStr = String(day).padStart(2, '0');
+    const dateString = `${year}-${mmStr}-${ddStr}`;
+
     const emotion = getEmotionByDate(day);
     const isSelected = selectedDate === dateString;
-    const isToday = dateString === todayString;
+
+    // 숫자 비교로 오늘인지 판단
+    const isToday =
+      year === todayYearNum &&
+      month === todayMonthNum &&
+      day === todayDateNum;
 
     return (
       <TouchableOpacity
         key={day}
         onPress={() => {
-          if (selectedDate === dateString) {
+          if (isSelected) {
             setSelectedDate('');
           } else {
             setSelectedDate(dateString);
@@ -66,11 +80,13 @@ const CalendarGrid = ({
         }}
         style={styles.dayWrapper}
       >
-        <View style={[
-          styles.circle,
-          isToday && !isSelected && styles.todayCircle,
-          isSelected && styles.selectedCircle
-        ]}>
+        <View
+          style={[
+            styles.circle,
+            isToday && !isSelected && styles.todayCircle,   // “오늘” 테두리
+            isSelected && styles.selectedCircle,            // “선택된 날짜” 테두리
+          ]}
+        >
           {emotion && emotionImageMap[emotion] ? (
             <>
               <Image source={emotionImageMap[emotion]} style={styles.emojiImg} />
@@ -80,13 +96,19 @@ const CalendarGrid = ({
             <Text style={styles.dateOnlyText}>{day}</Text>
           )}
         </View>
+
         {isToday && (
-          <Image source={require('../../assets/images/today.png')} style={styles.todayBadge} />
+          <Image
+            source={require('../../assets/images/today.png')}
+            style={styles.todayBadge}
+          />
         )}
       </TouchableOpacity>
     );
   };
 
+  // ───────────────────────────────────────────────────────────────────
+  // 달력을 그릴 배열: 첫날 이전은 null, 그 뒤로 1~daysInMonth
   const dayArray = [
     ...Array(firstDay).fill(null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
@@ -94,11 +116,16 @@ const CalendarGrid = ({
 
   return (
     <View style={styles.wrapper}>
+      {/* 요일 헤더 */}
       <View style={styles.weekRow}>
-        {weekDays.map((day) => (
-          <Text key={day} style={styles.weekDay}>{day}</Text>
+        {weekDays.map((wd) => (
+          <Text key={wd} style={styles.weekDay}>
+            {wd}
+          </Text>
         ))}
       </View>
+
+      {/* 날짜 그리드 */}
       <View style={styles.grid}>
         {dayArray.map((day, idx) => renderDay(day, idx))}
       </View>
@@ -118,12 +145,12 @@ const styles = StyleSheet.create({
   weekRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'flex-start', // ✅ 날짜와 동일하게
+    justifyContent: 'flex-start',
     width: '100%',
   },
   weekDay: {
     width: boxSize,
-    marginHorizontal: 2, // ✅ 날짜 셀과 동일한 마진
+    marginHorizontal: 2,
     textAlign: 'center',
     fontWeight: 'bold',
     color: '#555',
@@ -133,20 +160,19 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     justifyContent: 'flex-start',
     width: '100%',
-    paddingHorizontal: 0,
     paddingTop: 10,
   },
   dayWrapper: {
     width: boxSize,
-    height: boxSize + 15,  // 조금 더 높게
+    height: boxSize + 15,
     justifyContent: 'center',
     alignItems: 'center',
     marginVertical: 8,
-    marginHorizontal: 2, // ✅ 살짝 여백 주기만 하면 딱 떨어짐
+    marginHorizontal: 2,
     position: 'relative',
   },
   circle: {
-    width: 46,             // 원 크기 확대
+    width: 46,
     height: 46,
     borderRadius: 23,
     backgroundColor: '#fff',
@@ -163,30 +189,21 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
     marginBottom: 0,
   },
-  dayText: {
-    fontSize: 16,          // 숫자도 조금 키움
-    color: '#333',
-  },
-  emptyBox: {
-    width: boxSize,
-    height: boxSize,
-    marginHorizontal: 2, // ✅ 날짜 셀과 똑같이 줘야 정렬이 맞음!
-  },
-  emojiWithDate: {
-    fontSize: 24,
-    textAlign: 'center',
-    lineHeight: 28,
-  },
   dateUnderEmoji: {
     fontSize: 10,
     color: '#999',
     textAlign: 'center',
-    marginTop: 0,      // 여유 간격 없앰
+    marginTop: 0,
   },
   dateOnlyText: {
     fontSize: 16,
     color: '#333',
     textAlign: 'center',
+  },
+  emptyBox: {
+    width: boxSize,
+    height: boxSize,
+    marginHorizontal: 2,
   },
   todayBadge: {
     width: 48,
