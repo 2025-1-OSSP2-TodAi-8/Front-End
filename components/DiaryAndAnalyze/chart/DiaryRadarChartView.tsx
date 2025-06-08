@@ -1,6 +1,6 @@
 // components/DiaryAndAnalyze/emotion/DiaryRadarChartView.tsx
 import React from "react";
-import { View, Text, Dimensions, StyleSheet } from "react-native";
+import { View,Dimensions, StyleSheet } from "react-native";
 import SpiderGraph from "./SpiderGraph";
 
 const screenWidth = Dimensions.get("window").width;
@@ -18,7 +18,6 @@ const apiOrder = ["놀람", "화남", "행복", "슬픔", "혐오", "공포"];
 
 const DiaryRadarChartView: React.FC<DiaryRadarChartViewProps> = ({
     emotion,
-    text,
 }) => {
     // 1) emotion이 6개 숫자로 되어 있는지 검사
     const safeEmotion: number[] =
@@ -55,7 +54,7 @@ const DiaryRadarChartView: React.FC<DiaryRadarChartViewProps> = ({
                     max: maxValue
                 }}
             />
-            {text && <Text style={styles.text}>{text}</Text>}
+
         </View>
     );
 };
@@ -67,10 +66,5 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginTop: -170,
     },
-    text: {
-        fontSize: 16,
-        marginTop: 12,
-        color: "#333",
-        textAlign: "center",
-    },
+
 });

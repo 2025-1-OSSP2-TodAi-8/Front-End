@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // ───────────────────────────────────────────────────────────────────────
 // 파일: src/components/Main/MainScreen.tsx
 // ───────────────────────────────────────────────────────────────────────
@@ -62,57 +63,51 @@ const MainScreen: React.FC<{ setUserToken: (token: string | null) => void }> = (
     setMonth(today.getMonth() + 1);
   }, []);
 
-  // (B) 로그아웃 콜백 (WithMenuLayout에 넘겨줄 용도)
-  const handleLogout = useCallback(async () => {
-    await AsyncStorage.removeItem('accessToken');
-    await AsyncStorage.removeItem('refreshToken');
-    setUserToken(null);
-    setMenuVisible(false);
-  }, [setUserToken, setMenuVisible]);
 
   // (C) 월별 감정 데이터를 서버에서 불러오는 함수 (API 인스턴스 사용)
-  const fetchMonthlyEmotions = async () => {
-    setLoading(true);
-    try {
-      // API 인스턴스를 이용 → baseURL이 자동으로 붙고,
-      // 인터셉터가 accessToken을 Authorization 헤더에 붙여 줍니다.
-      const res = await API.post('/api/emotion/month', {
-        user_id: 1,
-        month,
-        year,
-      });
+ // (B) 로그아웃 콜백
+const handleLogout = useCallback(async () => {
+  await AsyncStorage.removeItem('accessToken');
+  await AsyncStorage.removeItem('refreshToken');
+  setUserToken(null);
+  setMenuVisible(false);
+}, [setUserToken]);
 
-      if (res.status === 200 && Array.isArray(res.data.emotions)) {
-        setEmotionData(res.data.emotions);
-      } else {
-        setEmotionData([]);
-      }
-    } catch (error) {
-      console.warn('월별 감정 불러오기 실패:', error);
+// ✅ (C) useCallback으로 감싼 감정 데이터 요청 함수
+const fetchMonthlyEmotions = useCallback(async () => {
+  setLoading(true);
+  try {
+    const res = await API.post('/api/emotion/month', {
+      month,
+      year,
+    });
+
+    if (res.status === 200 && Array.isArray(res.data.emotions)) {
+      console.log('[✅ 감정 데이터]', res.data.emotions); // ✅ 감정 배열 찍기
+      setEmotionData(res.data.emotions);
+    } else {
       setEmotionData([]);
-    } finally {
-      setLoading(false);
+    }
+  } catch (error) {
+    console.warn('월별 감정 불러오기 실패:', error);
+    setEmotionData([]);
+  } finally {
+    setLoading(false);
+  }
+}, [month, year]);
+
+// ✅ (D) 토큰 확인 후 최초 한 번만 데이터 요청
+useEffect(() => {
+  const checkTokenAndFetch = async () => {
+    const token = await AsyncStorage.getItem('accessToken');
+    if (!token) {
+      navigation.replace('LoginScreen');
+    } else {
+      fetchMonthlyEmotions();
     }
   };
-
-  /**
-   * (D) 1) 화면 마운트될 때, AsyncStorage에서 accessToken 있는지 확인
-   *     2) 없다면 로그인 화면으로 이동(replace)
-   *     3) 있다면 바로 월별 감정 데이터를 불러옴
-   */
-  useEffect(() => {
-    const checkTokenAndFetch = async () => {
-      const token = await AsyncStorage.getItem('accessToken');
-      if (!token) {
-        // 토큰 없으면 로그인 화면으로 리다이렉트
-        navigation.replace('LoginScreen');
-      } else {
-        // 토큰이 있으면 감정 데이터 조회
-        fetchMonthlyEmotions();
-      }
-    };
-    checkTokenAndFetch();
-  }, [month, year, navigation]);
+  checkTokenAndFetch();
+}, [fetchMonthlyEmotions, navigation]);
 
   // (E) 다이어리 섹션 헤더(날짜) 클릭 시 호출
   const handleDiaryPress = () => {

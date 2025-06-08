@@ -1,3 +1,5 @@
+/* eslint-disable eol-last */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import React from 'react';
 import { SafeAreaView, Text, StyleSheet, Image, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -43,7 +45,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ setUserToken, ...props }) => 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#DFB5FF',
+    backgroundColor: '#E8B7FF',
     alignItems: 'center',
     justifyContent: 'space-between',
   },

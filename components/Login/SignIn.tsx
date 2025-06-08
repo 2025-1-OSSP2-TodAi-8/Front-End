@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // 파일: src/components/DiaryAndAnalyze/SignIn.tsx
 
 import React, { useState } from 'react';
@@ -95,20 +96,16 @@ export default function SignIn({ setUserToken }: SignInProps) {
             const response = await API.post('/api/people/signup', body);
             if (response.data && response.data.message) {
                 // 예시: 서버가 access token까지 같이 내려준다고 가정할 경우
-                // const receivedToken = response.data.access;  
+                // const receivedToken = response.data.access; 
 
                 Alert.alert('회원가입 성공', response.data.message, [
                     {
-                        text: '확인',
-                        onPress: () => {
-                            // (1) 만약 서버 응답에 토큰(access)이 있다면 setUserToken 호출
-                            if (response.data.access) {
-                                AsyncStorage.setItem('userToken', response.data.access);
-                                setUserToken(response.data.access);
-                            }
-                        },
+                      text: '확인',
+                      onPress: () => {
+                        navigation.navigate('Login'); // 바로 로그인 화면으로 이동
+                      },
                     },
-                ]);
+                  ]);
             }
         } catch (error: any) {
             if (error.response && error.response.data) {
