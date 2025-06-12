@@ -89,30 +89,72 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({
               <Stack.Screen name="GuardianFirst" component={GuardianFirst} />
             ) : (
               <Stack.Screen name="Main">
-                {props => <MainScreen {...props} setUserToken={setUserToken} />}
+                {(props) => (
+                <MainScreen
+                  {...props}
+                  setUserToken={setUserToken}
+                  setUserType={setUserType}
+                />
+              )}
               </Stack.Screen>
             )}
 
             {/* 그 외 로그인 후 접근 가능한 스크린들 */}
             <Stack.Screen name="DiaryDetail">
-              {props => <DiaryAndAnalyzeScreen {...props} setUserToken={setUserToken} />}
+            {(props) => (
+                <DiaryAndAnalyzeScreen
+                  {...props}
+                  setUserToken={setUserToken}
+                  setUserType={setUserType}
+                />
+              )}
             </Stack.Screen>
             <Stack.Screen name="Favorites">
-              {(props) => <FavoritesScreen {...props} setUserToken={setUserToken} />}
+            {(props) => (
+                <FavoritesScreen
+                  {...props}
+                  setUserToken={setUserToken}
+                  setUserType={setUserType}
+                />
+              )}
             </Stack.Screen>
             <Stack.Screen name="MonthDetail">
-            {(props) => <FavoriteScreenMonth {...props} setUserToken={setUserToken} />}
+            {(props) => (
+                <FavoriteScreenMonth
+                  {...props}
+                  setUserToken={setUserToken}
+                  setUserType={setUserType}
+                />
+              )}
             </Stack.Screen>
-            <Stack.Screen name="Conversation" component={Conversation} />
+            <Stack.Screen name="Conversation">
+              {(props) => (
+                <Conversation
+                  {...props}
+                  setUserToken={setUserToken}
+                  setUserType={setUserType}
+                />
+              )}
+            </Stack.Screen>
             <Stack.Screen name="Mypage">
-              {(props) => <Mypage {...props} setUserToken={setUserToken} />}
+            {(props) => (
+                <Mypage
+                  {...props}
+                  setUserToken={setUserToken}
+                  setUserType={setUserType}
+                />
+              )}
             </Stack.Screen>
             {/*
               MainScreen_G은 setUserToken prop을 필수로 받기 때문에,
               component 속성 대신 아래처럼 render prop 방식으로 넘겨줍니다.
             */}
             <Stack.Screen name="MainScreen_G">
-              {props => <MainScreen_G {...props} setUserToken={setUserToken} />}
+              {props => <MainScreen_G 
+              {...props}
+              setUserToken={setUserToken}
+              setUserType={setUserType}
+               />}
             </Stack.Screen>
             <Stack.Screen name="FavoriteYear" component={FavoriteYear} />
             <Stack.Screen name="FavoriteMonth" component={FavoriteMonth}/>

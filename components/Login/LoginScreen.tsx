@@ -15,7 +15,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'MainScreen'
 
 interface LoginScreenProps {
   setUserToken: (token: string | null) => void;
-  [key: string]: any;
+  setUserType: (type: 'user' | 'guardian' | null) => void;
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ setUserToken, ...props }) => {

@@ -22,11 +22,11 @@ import Request_bar from '../Request_bar';
 import { useLink } from '../LinkContext';
 
 const emotionImageMap: { [key: string]: any } = {
-  놀라면: require('../../../assets/images/surprise.png'),
+  놀람: require('../../../assets/images/surprise.png'),
   화남: require('../../../assets/images/angry.png'),
   행복: require('../../../assets/images/happy.png'),
-  슬프면: require('../../../assets/images/sad.png'),
-  험오: require('../../../assets/images/disgust.png'),
+  슬픔: require('../../../assets/images/sad.png'),
+  혐오: require('../../../assets/images/disgust.png'),
   공포: require('../../../assets/images/fear.png'),
 };
 
@@ -37,7 +37,11 @@ type EmotionData = {
   emotion: string;
 };
 
-const MainScreen_G: React.FC<{ setUserToken: (token: string | null) => void }> = ({ setUserToken }) => {
+const MainScreen_G: React.FC<{
+  setUserToken: (token: string | null) => void;
+  setUserType: (type: 'user' | 'guardian' | null) => void;
+}> = ({ setUserToken, setUserType }) => {
+
   const navigation = useNavigation<MainNavProp>();
   const { targetIdNum, targetIdStr, setLink } = useLink();
   const [year, setYear] = useState(2025);
@@ -58,8 +62,9 @@ const MainScreen_G: React.FC<{ setUserToken: (token: string | null) => void }> =
 
   const handleLogout = useCallback(() => {
     setUserToken(null);
+    setUserType(null);       // ✅ 사용자 타입 초기화 추가
     setMenuVisible(false);
-  }, [setUserToken]);
+  }, [setUserToken, setUserType]);
 
   const showTempNotification = (msg: string) => {
     setNotification(msg);
@@ -74,13 +79,13 @@ const MainScreen_G: React.FC<{ setUserToken: (token: string | null) => void }> =
         setEmotionData([]);
         return;
       }
-  
+
       const res = await API.post('/api/people/share/month', {
         user_id: targetIdNum,
         year,
         month,
       });
-  
+
       if (res.status === 200 && Array.isArray(res.data.emotions)) {
         const enriched = res.data.emotions.map((e: any) => ({
           date: e.date,
@@ -88,7 +93,7 @@ const MainScreen_G: React.FC<{ setUserToken: (token: string | null) => void }> =
         }));
         setEmotionData(enriched);
         console.log('[감정 데이터 확인]', enriched);
-  
+
         // 🔁 최근 날짜 기준으로 연속 부정 감정이 4일 이상일 때 메시지 출력
       const negativeEmotions = ['슬픔', '화남', '혐오'];
 
@@ -107,10 +112,10 @@ const MainScreen_G: React.FC<{ setUserToken: (token: string | null) => void }> =
         const diff = filteredDates[i].getTime() - filteredDates[i - 1].getTime();
         if (diff === 86400000) {
           count++;
-          if (count === 2) start = filteredDates[i - 1];
+          if (count === 2) {start = filteredDates[i - 1];}
           end = filteredDates[i];
         } else {
-          if (count >= 4) break;
+          if (count >= 4) {break;}
           count = 0;
           start = null;
           end = null;
@@ -135,7 +140,7 @@ if (count >= 4 && start && end) {
 } else {
   setSummaryMessage('특별한 감정 변화가 나타나지 않습니다.');
 }
-  
+
       } else {
         setEmotionData([]);
         setSummaryMessage('특별한 감정 변화가 나타나지 않습니다.');
@@ -152,7 +157,6 @@ if (count >= 4 && start && end) {
       setLoading(false);
     }
   };
-  
 
   useEffect(() => {
     if (targetIdNum !== null && targetIdStr) {
@@ -336,3 +340,5 @@ const styles = StyleSheet.create({
 });
 
 export default MainScreen_G;
+
+
