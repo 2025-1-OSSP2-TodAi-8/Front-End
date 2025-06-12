@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 type Props = {
   /** "YYYY-MM-DD" 형태의 문자열을 넘겨주세요 */
   date: string;
+  onSave: () => void;
 };
 
 /**
@@ -32,7 +33,7 @@ type Props = {
  */
 const FAVORITE_API_URL = 'http://121.189.72.83:8888/api/diary/marking';
 
-const DiaryDetailActions = ({ date }: Props) => {
+const DiaryDetailActions = ({ date, onSave }: Props) => {
   // 즐겨찾기 상태
   const [isFavorite, setIsFavorite] = useState<boolean>(false);
   // API 요청 중 로딩 상태
@@ -138,7 +139,9 @@ const DiaryDetailActions = ({ date }: Props) => {
     }
   };
 
+
   return (
+    
     <View style={styles.navBar}>
       {loading ? (
         <ActivityIndicator size="small" color="#6A0DAD" />
@@ -163,16 +166,16 @@ const DiaryDetailActions = ({ date }: Props) => {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.navItem}
-            onPress={() => Alert.alert('저장', '저장 로직을 여기에 구현하세요.')}
-            disabled={loading}
-          >
-            <Image
-              source={require('../../../assets/images/save.png')}
-              style={styles.navIconImg}
-            />
-            <Text style={styles.navLabel}>저장</Text>
-          </TouchableOpacity>
+          style={styles.navItem}
+          onPress={onSave}
+          disabled={loading}
+        >
+          <Image
+            source={require('../../../assets/images/save.png')}
+            style={styles.navIconImg}
+          />
+          <Text style={styles.navLabel}>저장</Text>
+        </TouchableOpacity>
         </>
       )}
     </View>

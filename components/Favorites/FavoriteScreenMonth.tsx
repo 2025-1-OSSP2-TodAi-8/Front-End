@@ -40,9 +40,10 @@ type MonthEntry = {
 type Props = {
   navigation: any;
   setUserToken: (token: string | null) => void;
+  setUserType: (type: 'user' | 'guardian' | null) => void;
 };
 
-const FavoriteScreenMonth: React.FC<Props> = ({ navigation, setUserToken }) => {
+const FavoriteScreenMonth: React.FC<Props> = ({ navigation, setUserToken,setUserType}) => {
   const route = useRoute<RouteProp<RootStackParamList, 'MonthDetail'>>();
   const { year, month } = route.params;
 
@@ -53,8 +54,9 @@ const FavoriteScreenMonth: React.FC<Props> = ({ navigation, setUserToken }) => {
   const handleLogout = useCallback(async () => {
     await AsyncStorage.removeItem('accessToken');
     setUserToken(null);
+    setUserType(null);
     navigation.replace('LoginScreen');
-  }, [navigation, setUserToken]);
+  }, [navigation, setUserToken,setUserType]);
 
   useEffect(() => {
     const fetchFavorites = async () => {
@@ -117,7 +119,7 @@ const FavoriteScreenMonth: React.FC<Props> = ({ navigation, setUserToken }) => {
   };
 
   return (
-    <WithMenuLayout setUserToken={setUserToken}>
+    <WithMenuLayout setUserToken={setUserToken}setUserType={setUserType}>
       <MenuIcon isOpen={menuVisible} onPress={() => setMenuVisible((v) => !v)} />
 
       {menuVisible && (
@@ -129,6 +131,7 @@ const FavoriteScreenMonth: React.FC<Props> = ({ navigation, setUserToken }) => {
             navigation.navigate('Favorites');
           }}
           setUserToken={setUserToken}
+          setUserType={setUserType}
           isOpen={menuVisible}
           toggleMenu={() => setMenuVisible(false)}
         />

@@ -19,7 +19,7 @@ interface AudioRecorderProps {
   onResult: (response: {
     success: number;
     emotion: number[];
-    text: string;
+    summary: string;
     message?: string;
   }) => void;
 }
@@ -131,7 +131,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ start, onResult }) => {
       onResult({
         success: 0,
         emotion: [0, 0, 0, 0, 0, 0, 0],
-        text: '',
+        summary: '',
         message: '서버 업로드 중 오류가 발생했습니다.',
       });
     }

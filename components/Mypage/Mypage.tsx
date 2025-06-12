@@ -18,9 +18,10 @@ import MenuBar from '../MenuBar/MenuBar';
 
 const VALID_RANGE = ['partial', 'full'];
 
-const Mypage: React.FC<{ navigation: any; setUserToken: (token: string | null) => void }> = ({
+const Mypage: React.FC<{ navigation: any; setUserToken: (token: string | null) => void; setUserType: (type: 'user' | 'guardian' | null) => void; }> = ({
   navigation,
   setUserToken,
+  setUserType
 }) => {
   const [Range, setRange] = useState<Record<number, string>>({});
   const [userInfo, setUserInfo] = useState<null | {
@@ -118,7 +119,7 @@ const Mypage: React.FC<{ navigation: any; setUserToken: (token: string | null) =
   }
 
   return (
-    <WithMenuLayout setUserToken={setUserToken}>
+    <WithMenuLayout setUserToken={setUserToken} setUserType={setUserType}>
       <SafeAreaView style={styles.container}>
         {!menuVisible && (
           <MenuIcon isOpen={false} onPress={() => setMenuVisible(true)} />
@@ -133,6 +134,7 @@ const Mypage: React.FC<{ navigation: any; setUserToken: (token: string | null) =
               navigation.navigate('Favorites');
             }}
             setUserToken={setUserToken}
+            setUserType={setUserType}
             isOpen={menuVisible}
             toggleMenu={() => setMenuVisible(false)}
           />

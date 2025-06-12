@@ -57,7 +57,7 @@ export default function Login({ setUserToken, setUserType }: LoginProps) {
       return;
 
       // ★ 수정됨: 백엔드가 아닌 사용자가 입력한 userId를 guardianId로 그대로 저장
-      
+
     }
     // ────────────────────────────────
 

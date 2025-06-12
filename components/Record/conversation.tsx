@@ -1,6 +1,4 @@
 /* eslint-disable react-native/no-inline-styles */
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // 파일: src/components/Conversation/Conversation.tsx
 
 import React, { useState, useEffect } from 'react';
@@ -13,54 +11,46 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
-  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import AudioRecorder from './VoiceRecorder';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// 메뉴 관련 컴포넌트
 import MenuIcon from '../MenuBar/MenuIcon';
 import MenuBar from '../MenuBar/MenuBar';
 import WithMenuLayout from '../MenuBar/MenuBarLayout';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
-const Conversation = () => {
-  // navigation & route
+interface Props {
+  setUserToken: (token: string | null) => void;
+  setUserType: (type: 'user' | 'guardian' | null) => void;
+}
+
+const Conversation: React.FC<Props> = ({ setUserToken, setUserType }) => {
   const route = useRoute<RouteProp<RootStackParamList, 'Conversation'>>();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const dateParam = route.params?.date; // "YYYY-MM-DD" 형식
+  const dateParam = route.params?.date;
 
-  // ─── (1) 기존 스테이트들 ───
   const [showQuestion, setQuestion] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordStart, setRecordStart] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // ─── (2) 새로 추가: 서버에서 받은 요약 텍스트, 감정 배열 상태 ───
-  const [summaryText, setSummaryText] = useState<string>('');
+  const [summaryText, setSummaryText] = useState<string | null>(null);
   const [emotionArray, setEmotionArray] = useState<number[]>([]);
 
   const [questionAnimation] = useState(new Animated.Value(0));
   const [userRecordingAnimation] = useState(new Animated.Value(0));
   const [summaryAnimation] = useState(new Animated.Value(0));
 
-  // ─── (3) 메뉴바 열림 여부 ───
   const [menuVisible, setMenuVisible] = useState<boolean>(false);
+  const [showOverlay, setShowOverlay] = useState(false);
+  const [overlayText, setOverlayText] = useState('');
 
-  // ─── (4) 로그아웃 콜백 ───
-  async function setUserToken(token: string | null): Promise<void> {
-    console.log('로그아웃, 토큰 →', token);
-    if (token === null) {
-      await AsyncStorage.removeItem('accessToken');
-      navigation.replace('LoginScreen');
-    }
-  }
-
-  // ─── (5) 질문 애니메이션 ───
   useEffect(() => {
     const timer = setTimeout(() => {
       setQuestion(true);
@@ -76,14 +66,12 @@ const Conversation = () => {
         useNativeDriver: true,
       }).start();
     }
-  }, [showQuestion]);
+  }, [questionAnimation, showQuestion]);
 
-  // ─── (6) 녹음 토글 로직 ───
   const toggleRecording = () => {
     setIsRecording(prev => {
       const newState = !prev;
       if (newState) {
-        // 녹음 시작
         setRecordStart(true);
         userRecordingAnimation.setValue(0);
         Animated.timing(userRecordingAnimation, {
@@ -91,60 +79,52 @@ const Conversation = () => {
           duration: 300,
           useNativeDriver: true,
         }).start();
-      } else {
-        // 녹음 종료 후, 잠시 뒤 요약/감정 표시
-        setTimeout(() => {
-          setShowSummary(true);
-          summaryAnimation.setValue(0);
-          Animated.timing(summaryAnimation, {
-            toValue: 1,
-            duration: 300,
-            useNativeDriver: true,
-          }).start();
-        }, 500);
       }
       return newState;
     });
   };
 
-  /**
-   * AudioRecorder 컴포넌트가 업로드를 마치고 서버 응답을 주면 호출됩니다.
-   * result: { success, emotion, text, message? }
-   */
+  const resetRecordingState = () => {
+    setRecordStart(false);
+    setShowSummary(false);
+    setSummaryText(null);
+    setEmotionArray([]);
+  };
+
   const handleServerResult = (result: {
     success: number;
     emotion: number[];
-    text: string;
+    summary: string;
     message?: string;
   }) => {
+    setIsLoading(false);
     if (result.success === 1) {
-      setSummaryText(result.text || '');
+      setSummaryText(result.summary && result.summary.trim().length > 0 ? result.summary : null);
       setEmotionArray(result.emotion || []);
+      summaryAnimation.setValue(0);
+      Animated.timing(summaryAnimation, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+      setShowSummary(true);
     } else {
-      Alert.alert('오류', result.message || '서버에서 요약/감정 결과를 받을 수 없습니다.');
-      setSummaryText('죄송합니다. 요약 정보를 가져오지 못했습니다.');
-      setEmotionArray([]);
+      setOverlayText('너무 짧습니다!\n오늘 하루에 대해 좀 더 말해주세요');
+      setShowOverlay(true);
+      resetRecordingState();
     }
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F5E8FF' }}>
-      <WithMenuLayout setUserToken={setUserToken}>
+      <WithMenuLayout setUserToken={setUserToken} setUserType={setUserType}>
         <SafeAreaView style={styles.container}>
-          {/* ─── ① 메뉴 아이콘 ─── */}
           {!menuVisible && (
-            <MenuIcon
-              isOpen={false}
-              onPress={() => setMenuVisible(true)}
-            />
+            <MenuIcon isOpen={false} onPress={() => setMenuVisible(true)} />
           )}
-
-          {/* ─── ② 헤더 */}
           <View style={styles.header}>
             <Text style={styles.title}>TodAi</Text>
           </View>
-
-          {/* ─── ③ 메뉴바 */}
           {menuVisible && (
             <MenuBar
               visible={menuVisible}
@@ -154,55 +134,46 @@ const Conversation = () => {
                 navigation.navigate('Favorites');
               }}
               setUserToken={setUserToken}
+              setUserType={setUserType}
               isOpen={menuVisible}
               toggleMenu={() => setMenuVisible(false)}
             />
           )}
-
-          {/* ─── ④ 구분선 */}
           <View style={styles.divider1} />
 
-          {/* ─── ⑤ 질문 텍스트 영역 ─── */}
           <View style={styles.middle}>
             {dateParam && (
               <TouchableOpacity onPress={() => navigation.navigate('Main')}>
                 <Text style={styles.dateText}>
-                  {`${dateParam.slice(0, 4)}년 ${parseInt(
-                    dateParam.slice(5, 7),
-                    10,
-                  )}월 ${parseInt(dateParam.slice(8, 10), 10)}일`}
+                  {`${dateParam.slice(0, 4)}년 ${parseInt(dateParam.slice(5, 7), 10)}월 ${parseInt(dateParam.slice(8, 10), 10)}일`}
                 </Text>
               </TouchableOpacity>
             )}
             <Text style={styles.subtitle}>오늘 하루를 기록해 주세요</Text>
             {showQuestion && (
-              <Animated.View
-                style={[styles.question, { opacity: questionAnimation }]}
-              >
+              <Animated.View style={[styles.question, { opacity: questionAnimation }]}>
                 <Text style={styles.text}>오늘 하루는 어떠셨나요?</Text>
               </Animated.View>
             )}
           </View>
 
-          {/* ─── ⑥ 마이크 버튼 ─── */}
           <View style={styles.micContainer}>
             <View style={styles.divider2} />
-            <TouchableOpacity onPress={toggleRecording} style={styles.micButton}>
-              <Image
-                source={require('../../assets/images/mic.png')}
-                style={styles.mic}
-              />
+            <TouchableOpacity onPress={() => {
+              setIsLoading(true);
+              toggleRecording();
+            }} style={styles.micButton}>
+              <Image source={require('../../assets/images/mic.png')} style={styles.mic} />
             </TouchableOpacity>
           </View>
 
-          {/* ─── ⑦ AudioRecorder로 녹음 및 업로드 ─── */}
-          <AudioRecorder start={isRecording} onResult={handleServerResult} />
+          <AudioRecorder
+            start={isRecording}
+            onResult={handleServerResult}
+          />
 
-          {/* ─── ⑧ 녹음 애니메이션 (웨이브 이미지) ─── */}
           {recordStart && (
-            <Animated.View
-              style={[styles.userRecording, { opacity: userRecordingAnimation }]}
-            >
+            <Animated.View style={[styles.userRecording, { opacity: userRecordingAnimation }]}>
               <Image
                 source={require('../../assets/images/longwave.png')}
                 style={styles.userRecordingImage}
@@ -210,7 +181,8 @@ const Conversation = () => {
             </Animated.View>
           )}
 
-          {/* ─── ⑨ 요약 & 감정 결과 표시 ─── */}
+          {isLoading && <ActivityIndicator size="large" color="#531ea3" style={{ marginTop: 20 }} />}
+
           {showSummary && (
             <Animated.View style={[styles.summaryContainer, { opacity: summaryAnimation }]}>
               <Text style={styles.summaryTitle}>오늘의 Emotion:</Text>
@@ -218,16 +190,8 @@ const Conversation = () => {
                 {emotionArray.length
                   ? emotionArray
                       .map((val, idx) => {
-                        const labels = [
-                          '중립',
-                          '놀람',
-                          '화남',
-                          '행복',
-                          '슬픔',
-                          '혐오',
-                          '공포',
-                        ];
-                        return `${labels[idx]}:${val}`;
+                        const labels = ['행복', '슬픔', '화남', '놀람', '공포', '혐오'];
+                        return `${labels[idx]}: ${(val * 100).toFixed(1)}%`;
                       })
                       .join('  ')
                   : '감정 정보를 불러올 수 없습니다.'}
@@ -235,11 +199,53 @@ const Conversation = () => {
 
               <Text style={styles.summaryTitle}>요약:</Text>
               <Text style={styles.summaryText}>
-                {summaryText || '@님의 오늘 이야기를 불러올 수 없습니다.'}
+                {summaryText && summaryText.trim().length > 0
+                  ? summaryText
+                  : '@님의 오늘 이야기를 불러올 수 없습니다.'}
               </Text>
+
+              <TouchableOpacity
+                onPress={() => {
+                  resetRecordingState();
+                  setIsRecording(true);
+                }}
+                style={styles.redoButton}
+              >
+                <Text style={styles.redoButtonText}>다시 녹음하기</Text>
+              </TouchableOpacity>
             </Animated.View>
           )}
         </SafeAreaView>
+
+        {showOverlay && (
+          <View style={styles.overlay}>
+            <View style={styles.overlayBox}>
+              <Text style={styles.overlayText}>{overlayText}</Text>
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowOverlay(false);
+                    resetRecordingState();
+                    setIsRecording(true);
+                  }}
+                  style={styles.overlayButton}
+                >
+                  <Text style={styles.overlayButtonText}>다시 녹음</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowOverlay(false);
+                    resetRecordingState();
+                  }}
+                  style={[styles.overlayButton, { backgroundColor: '#aaa' }]}
+                >
+                  <Text style={styles.overlayButtonText}>취소</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
       </WithMenuLayout>
     </View>
   );
@@ -383,6 +389,55 @@ const styles = StyleSheet.create({
     color: '#000',
     marginTop: 4,
     lineHeight: 18,
+  },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  overlayBox: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    width: '80%',
+  },
+  overlayText: {
+    fontSize: 16,
+    color: '#000',
+    textAlign: 'center',
+    marginBottom: 16,
+    lineHeight: 22,
+  },
+  overlayButton: {
+    backgroundColor: '#531ea3',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  overlayButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  redoButton: {
+    marginTop: 12,
+    alignSelf: 'center',
+    backgroundColor: '#531ea3',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  redoButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
 

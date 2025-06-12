@@ -36,9 +36,10 @@ const emotionImageMap: { [key: string]: any } = {
 type FavoritesScreenProps = {
   navigation: any;
   setUserToken: (token: string | null) => void;
+  setUserType: (type: 'user' | 'guardian' | null) => void;
 };
 
-const FavoritesScreen: React.FC<FavoritesScreenProps> = ({ navigation, setUserToken }) => {
+const FavoritesScreen: React.FC<FavoritesScreenProps> = ({ navigation, setUserToken,setUserType}) => {
   const [year, setYear] = useState<number>(2025);
   const [emotionMap, setEmotionMap] = useState<{ [key: string]: string[] }>({});
   const [menuVisible, setMenuVisible] = useState<boolean>(false);
@@ -46,8 +47,9 @@ const FavoritesScreen: React.FC<FavoritesScreenProps> = ({ navigation, setUserTo
   const handleLogout = useCallback(async () => {
     await AsyncStorage.removeItem('accessToken');
     setUserToken(null);
+    setUserType(null);
     navigation.replace('LoginScreen');
-  }, [navigation, setUserToken]);
+  }, [navigation, setUserToken,setUserType]);
 
   useEffect(() => {
     const fetchYearlyEmotion = async () => {
@@ -101,7 +103,7 @@ const FavoritesScreen: React.FC<FavoritesScreenProps> = ({ navigation, setUserTo
   };
 
   return (
-    <WithMenuLayout setUserToken={setUserToken}>
+    <WithMenuLayout setUserToken={setUserToken} setUserType={setUserType}>
       <SafeAreaView style={styles.container}>
         <MenuIcon isOpen={menuVisible} onPress={() => setMenuVisible((v) => !v)} />
 
@@ -114,6 +116,7 @@ const FavoritesScreen: React.FC<FavoritesScreenProps> = ({ navigation, setUserTo
               navigation.navigate('Favorites');
             }}
             setUserToken={setUserToken}
+            setUserType={setUserType}
             isOpen={menuVisible}
             toggleMenu={() => setMenuVisible(false)}
           />

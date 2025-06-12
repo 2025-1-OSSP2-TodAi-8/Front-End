@@ -1,17 +1,25 @@
+
 import React, { useCallback } from 'react';
 import { TouchableOpacity, Text, StyleSheet, Image, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface LogoutProps {
     setUserToken: (token: string | null) => void;
+    setUserType: (type: 'user' | 'guardian' | null) => void;
 }
 
-const Logout: React.FC<LogoutProps> = ({ setUserToken }) => {
+interface LogoutProps {
+    setUserToken: (token: string | null) => void;
+    setUserType: (type: 'user' | 'guardian' | null) => void;
+  }
+  const Logout: React.FC<LogoutProps> = ({ setUserToken, setUserType }) => {
     const handleLogout = useCallback(async () => {
-        await AsyncStorage.removeItem('accessToken');
-        await AsyncStorage.removeItem('refreshToken');
-        setUserToken(null);
-    }, [setUserToken]);
+      await AsyncStorage.removeItem('accessToken');
+      await AsyncStorage.removeItem('refreshToken');
+      setUserToken(null);
+      setUserType(null);
+    }, [setUserToken, setUserType]);
+
 
     return (
         <View style={styles.container}>
@@ -51,3 +59,4 @@ const styles = StyleSheet.create({
 });
 
 export default Logout; 
+

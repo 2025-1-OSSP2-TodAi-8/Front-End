@@ -45,7 +45,10 @@ const emotionImageMap: { [key: string]: any } = {
   공포: require('../../assets/images/fear.png'),
 };
 
-const MainScreen: React.FC<{ setUserToken: (token: string | null) => void }> = ({ setUserToken }) => {
+const MainScreen: React.FC<{
+  setUserToken: (token: string | null) => void;
+  setUserType: (type: 'user' | 'guardian' | null) => void;
+}> = ({ setUserToken, setUserType }) => {
   const navigation = useNavigation<MainNavProp>();
 
   // (A) 내부 state: 년/월/선택일 + 감정 데이터 + 로딩 상태 + 메뉴바 열림 여부
@@ -70,6 +73,7 @@ const handleLogout = useCallback(async () => {
   await AsyncStorage.removeItem('accessToken');
   await AsyncStorage.removeItem('refreshToken');
   setUserToken(null);
+  setUserType(null);
   setMenuVisible(false);
 }, [setUserToken]);
 
@@ -127,7 +131,7 @@ useEffect(() => {
   // ─────────────────────────────────────────────────────────────────────
   return (
     // (F) 메뉴가 필요한 페이지는 WithMenuLayout으로 감싼다
-    <WithMenuLayout setUserToken={setUserToken}>
+    <WithMenuLayout setUserToken={setUserToken} setUserType={setUserType}>
       <SafeAreaView style={styles.container}>
         {/* (G) 메뉴가 닫혀 있을 때만 상단 좌측 햄버거 아이콘 표시 */}
         {!menuVisible && (
@@ -147,6 +151,7 @@ useEffect(() => {
               navigation.navigate('Favorites');
             }}
             setUserToken={setUserToken}
+            setUserType={setUserType}
             isOpen={menuVisible} // true → 메뉴바 안쪽 아이콘 90도 회전
             toggleMenu={() => setMenuVisible(false)}
           />

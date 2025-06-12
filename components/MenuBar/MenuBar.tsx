@@ -26,13 +26,13 @@ const calendarIcon = require('../../assets/images/calendarIcon.png');
 const recordIcon = require('../../assets/images/recordIcon.png');
 const favoriteIcon = require('../../assets/images/favoriteIcon.png');
 const mypageIcon = require('../../assets/images/mypageIcon.png');
-const settingsIcon = require('../../assets/images/settingsIcon.png');
 
 interface MenuBarProps {
     visible: boolean;                  // 메뉴 열림 여부
     onClose: () => void;               // 메뉴 닫는 콜백 (아이콘 탭 시)
     onFavorites?: () => void;
     setUserToken: (token: string | null) => void;
+    setUserType: (type: 'user' | 'guardian' | null) => void;
     isOpen: boolean;                   // 메뉴 열림 상태 (아이콘 회전 여부)
     toggleMenu: () => void;            // 아이콘 탭 시 메뉴 토글
 }
@@ -42,6 +42,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
     onClose,
     onFavorites,
     setUserToken,
+    setUserType,
     isOpen,
     toggleMenu,
 }) => {
@@ -68,6 +69,8 @@ const MenuBar: React.FC<MenuBarProps> = ({
     }, [visible, slideAnim]);
 
     if (!shouldRender) return null;
+
+
 
     return (
         <Animated.View
@@ -130,7 +133,7 @@ const MenuBar: React.FC<MenuBarProps> = ({
 
                 {/* 로그아웃 버튼 (맨 아래) */}
                 <View style={styles.logoutWrapper}>
-                    <Logout setUserToken={setUserToken} />
+                <Logout setUserToken={setUserToken} setUserType={setUserType} />
                 </View>
             </SafeAreaView>
         </Animated.View>
