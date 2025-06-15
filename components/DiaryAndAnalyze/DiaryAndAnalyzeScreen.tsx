@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-shadow */
-import React, { useState, useEffect } from 'react';
+// @ts-ignore
+import CameraRoll from '@react-native-camera-roll/camera-roll';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     TouchableOpacity,
@@ -10,15 +12,14 @@ import {
     StyleSheet,
     SafeAreaView,
     Dimensions,
+    PermissionsAndroid,
+    Platform,
+    Alert,
 } from 'react-native';
 import API from '../../api/axios';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { captureRef } from 'react-native-view-shot';
-import RNFS from 'react-native-fs';
-import { useRef } from 'react';
-import CameraRoll from '@react-native-camera-roll/camera-roll';
-import { PermissionsAndroid, Platform, Alert } from 'react-native';
 import type { RootStackParamList } from '../../navigation/AppNavigator';
 import DiaryEmotionView from './emotion/DiaryEmotionView';
 import DiaryRadarChartView from './chart/DiaryRadarChartView';
@@ -112,59 +113,56 @@ const DiaryAndAnalyzeScreen: React.FC<{ navigation: any; setUserToken: (token: s
 
     const handleSaveScreenshot = async () => {
         try {
-          // 권한 요청 (Android)
-          if (Platform.OS === 'android') {
-            const granted = await PermissionsAndroid.request(
-              PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
-              {
-                title: '사진 접근 권한',
-                message: '갤러리에 저장하려면 권한이 필요합니다.',
-                buttonPositive: '허용',
-              },
-            );
-            if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-              Alert.alert('권한 거부됨', '사진 저장 권한이 없습니다.');
-              return;
+            if (Platform.OS === 'android') {
+                const granted = await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.READ_MEDIA_IMAGES,
+                    {
+                        title: '사진 접근 권한',
+                        message: '갤러리에 저장하려면 권한이 필요합니다.',
+                        buttonPositive: '허용',
+                    }
+                );
+                if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+                    Alert.alert('권한 거부됨', '사진 저장 권한이 없습니다.');
+                    return;
+                }
             }
-          }
-          // 캡처 실행
-          const uri = await captureRef(screenShotRef, {
-            format: 'png',
-            quality: 1,
-          });
-          // 카메라롤에 저장
-          const savedUri = await (CameraRoll as any).save(uri, { type: 'photo' });
-          Alert.alert('저장 완료', `갤러리에 저장되었습니다:\n${savedUri}`);
+
+            const uri = await captureRef(screenShotRef, {
+                format: 'png',
+                quality: 1,
+            });
+
+            // @ts-ignore
+            await CameraRoll.save(uri, { type: 'photo' });
+            Alert.alert('저장 완료', '갤러리에 저장되었습니다.');
         } catch (error) {
-          console.error('스크린샷 저장 실패:', error);
-          Alert.alert('오류', '스크린샷 저장에 실패했습니다.');
+            console.error('스크린샷 저장 실패:', error);
+            Alert.alert('오류', '스크린샷 저장에 실패했습니다.');
         }
-      };
-        <DiaryDetailActions
-        date={currentDate} onSave={handleSaveScreenshot}
-        />
+    };
 
     const [yStr, mStr, dStr] = currentDate.split('-');
     const formattedDate = `${yStr}년 ${parseInt(mStr, 10)}월 ${parseInt(dStr, 10)}일`;
 
     return (
-        <WithMenuLayout setUserToken={setUserToken}setUserType={setUserType}>
+        <WithMenuLayout setUserToken={setUserToken} setUserType={setUserType}>
             <SafeAreaView ref={screenShotRef} collapsable={false} style={styles.container}>
                 <MenuIcon isOpen={menuVisible} onPress={() => setMenuVisible(true)} />
 
                 {menuVisible && (
-                <MenuBar
-                    visible={menuVisible}
-                    onClose={() => setMenuVisible(false)}
-                    onFavorites={() => {
-                    setMenuVisible(false);
-                    navigation.navigate('Favorites');
-                    }}
-                    setUserToken={setUserToken}
-                    setUserType={setUserType}
-                    isOpen={menuVisible} // true → 메뉴바 안쪽 아이콘 90도 회전
-                    toggleMenu={() => setMenuVisible(false)}
-                />
+                    <MenuBar
+                        visible={menuVisible}
+                        onClose={() => setMenuVisible(false)}
+                        onFavorites={() => {
+                            setMenuVisible(false);
+                            navigation.navigate('Favorites');
+                        }}
+                        setUserToken={setUserToken}
+                        setUserType={setUserType}
+                        isOpen={menuVisible}
+                        toggleMenu={() => setMenuVisible(false)}
+                    />
                 )}
 
                 <View style={styles.headerWrapper}>
@@ -211,7 +209,7 @@ const DiaryAndAnalyzeScreen: React.FC<{ navigation: any; setUserToken: (token: s
                 </View>
 
                 <View style={styles.actionsWrapper}>
-                <DiaryDetailActions date={currentDate} onSave={handleSaveScreenshot} />
+                    <DiaryDetailActions date={currentDate} onSave={handleSaveScreenshot} />
                 </View>
             </SafeAreaView>
         </WithMenuLayout>

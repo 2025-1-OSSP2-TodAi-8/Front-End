@@ -12,9 +12,9 @@ interface DiaryRadarChartViewProps {
 }
 
 // 화면에 그릴 레이블 (기쁨 대신 '화남'부터 6개)
-const emotionLabels = ['화남', '슬픔', '혐오', '행복', '공포', '놀람'];
+const emotionLabels = ['행복', '슬픔', '화남', '놀람', '공포', '혐오'];
 // API 순서
-const apiOrder = ['화남', '슬픔', '혐오', '행복', '공포', '놀람'];
+const apiOrder = ['행복', '슬픔', '화남', '놀람', '공포', '혐오'];
 
 const DiaryRadarChartView: React.FC<DiaryRadarChartViewProps> = ({
     emotion,

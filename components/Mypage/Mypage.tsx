@@ -81,22 +81,29 @@ const Mypage: React.FC<{ navigation: any; setUserToken: (token: string | null) =
   const fetchUser = async () => {
     try {
       const token = await AsyncStorage.getItem('accessToken');
+      console.log('📦 가져온 토큰:', token);
+  
       if (!token) {
         Alert.alert('토큰 오류', '로그인이 필요합니다.');
         return;
       }
+
       const response = await API.get('/api/people', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+
+      console.log('✅ 유저 정보 응답:', response.data);
       setUserInfo(response.data);
-    } catch (error) {
+    } catch (error: any) {
+      console.log('❌ 유저 정보 불러오기 실패:', error);
       Alert.alert('오류', '마이페이지 정보를 불러오지 못했습니다.');
     } finally {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     fetchUser();
@@ -249,13 +256,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 135,
   },
   name: {
-    fontSize: 16,
+    fontSize: 14,
     marginBottom: 8,
     color: '#fff',
     fontWeight: '600',
   },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: 14,
     fontWeight: '700',
     marginLeft: 20,
     marginBottom: 10,
@@ -275,7 +282,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 100,
   },
   name2: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#000',
     fontWeight: '500',
   },
