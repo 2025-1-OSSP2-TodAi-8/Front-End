@@ -1,34 +1,28 @@
-
-/* eslint-disable curly */
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-// 파일: components/AudioRecorder.tsx
-
 import React, { useEffect, useState } from 'react';
 import { PermissionsAndroid, Platform } from 'react-native';
 import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 import RNFS from 'react-native-fs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import SoundLevel from 'react-native-sound-level';
 
 const audioRecorderPlayer = new AudioRecorderPlayer();
 
 interface AudioRecorderProps {
-  /** 녹음을 시작/종료할 플래그 */
   start: boolean;
-  /** 녹음이 끝난 뒤 서버 응답을 받을 때 호출할 콜백 */
   onResult: (response: {
     success: number;
     emotion: number[];
     summary: string;
     message?: string;
   }) => void;
+  // (선택) 파형 그릴 컴포넌트를 위해 데시벨 값 전달
+  onVolumeChange?: (db: number) => void;
 }
 
-const AudioRecorder: React.FC<AudioRecorderProps> = ({ start, onResult }) => {
+const AudioRecorder: React.FC<AudioRecorderProps> = ({ start, onResult, onVolumeChange }) => {
   const [recording, setRecording] = useState(false);
   const [recordedFile, setRecordedFile] = useState<string | null>(null);
 
-  // ─── 권한 요청 ─────────────────────────────────────────────────────
   const requestPermissions = async () => {
     if (Platform.OS === 'android') {
       const granted = await PermissionsAndroid.request(
@@ -44,64 +38,67 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ start, onResult }) => {
     return true;
   };
 
-  // ─── 녹음 시작 ─────────────────────────────────────────────────────
   const startRecording = async () => {
     const granted = await requestPermissions();
     if (!granted) return;
 
     const now = new Date();
     const pad = (n: number) => n.toString().padStart(2, '0');
-    const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
-      now.getDate(),
-    )}`;
-    const formattedTime = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(
-      now.getSeconds(),
-    )}`;
+    const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const formattedTime = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
     const fileName = `recording-${formattedDate}_${formattedTime}.mp4`;
 
-    // 캐시 디렉토리에 저장 경로 생성
     const filePath = `${RNFS.CachesDirectoryPath}/${fileName}`;
 
     const uri = await audioRecorderPlayer.startRecorder(filePath);
     setRecording(true);
     setRecordedFile(uri);
     console.log('녹음 시작됨:', uri);
+
+    // 데시벨 측정 시작
+    SoundLevel.start();
+    SoundLevel.onNewFrame = (data) => {
+      // volume 값은 보통 -160 ~ 0 (dB) 사이
+      console.log('데시벨:', data.value);
+      if (onVolumeChange) onVolumeChange(data.value);
+    };
   };
 
-  // ─── 녹음 종료 ─────────────────────────────────────────────────────
   const stopRecording = async () => {
     const result = await audioRecorderPlayer.stopRecorder();
     setRecording(false);
     setRecordedFile(result);
     console.log('녹음 저장됨:', result);
 
-    // 녹음이 끝나면 서버에 업로드
-    await uploadRecording(result);
+    // 데시벨 측정 종료
+    SoundLevel.stop();
+
+    // 🔧 테스트용: 서버 업로드 잠깐 주석 처리
+    // await uploadRecording(result);
+
+    // 테스트 응답 전달
+    onResult({
+      success: 1,
+      emotion: [1, 2, 3, 4, 5, 6, 7],
+      summary: '테스트 요약입니다.',
+    });
   };
 
-  // ─── 녹음 파일 업로드 ─────────────────────────────────────────────────
+  /*
   const uploadRecording = async (filePath: string) => {
     if (!filePath) return;
-
-    // AsyncStorage에서 토큰 꺼내오기 (로그인 시 “accessToken” 키로 저장했다고 가정)
     const token = await AsyncStorage.getItem('accessToken');
     if (!token) {
       console.warn('No user token found. Cannot upload recording.');
       return;
     }
 
-    // 날짜 포맷 YYYY-MM-DD
     const now = new Date();
     const pad = (n: number) => n.toString().padStart(2, '0');
-    const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
-      now.getDate(),
-    )}`;
-    const formattedTime = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(
-      now.getSeconds(),
-    )}`;
+    const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const formattedTime = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
     const fileName = `recording-${formattedDate}_${formattedTime}.mp4`;
 
-    // FormData 생성: date, audio 필드만 추가
     const data = new FormData();
     data.append('date', formattedDate);
     data.append('audio', {
@@ -122,12 +119,9 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ start, onResult }) => {
 
       const resultJson = await response.json();
       console.log('서버 응답:', resultJson);
-
-      // 부모 컴포넌트(Conversation)에게 결과 전달
       onResult(resultJson);
     } catch (error) {
       console.error('업로드 실패:', error);
-      // 실패한 경우에도 부모에게 success:0 형태로 알려줄 수 있음
       onResult({
         success: 0,
         emotion: [0, 0, 0, 0, 0, 0, 0],
@@ -136,8 +130,8 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ start, onResult }) => {
       });
     }
   };
+  */
 
-  // ─── start prop이 true로 바뀌면 녹음 시작, false면 녹음 종료 ─────────────
   useEffect(() => {
     if (start && !recording) {
       startRecording();
