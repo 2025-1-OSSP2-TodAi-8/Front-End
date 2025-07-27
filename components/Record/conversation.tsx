@@ -21,6 +21,7 @@ import type { RootStackParamList } from '../../navigation/AppNavigator';
 import MenuIcon from '../MenuBar/MenuIcon';
 import MenuBar from '../MenuBar/MenuBar';
 import WithMenuLayout from '../MenuBar/MenuBarLayout';
+import WaveForm from './WaveForm'
 
 const { width } = Dimensions.get('window');
 
@@ -39,6 +40,7 @@ const Conversation: React.FC<Props> = ({ setUserToken, setUserType }) => {
   const [recordStart, setRecordStart] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [decibel, setDecibel] = useState(0);
 
   const [summaryText, setSummaryText] = useState<string | null>(null);
   const [emotionArray, setEmotionArray] = useState<number[]>([]);
@@ -85,10 +87,12 @@ const Conversation: React.FC<Props> = ({ setUserToken, setUserType }) => {
   };
 
   const resetRecordingState = () => {
-    setRecordStart(false);
+    setRecordStart(false);       // 파형 숨기기
     setShowSummary(false);
     setSummaryText(null);
     setEmotionArray([]);
+    setQuestion(false); // 질문도 다시 보여줄 거면 이거 유지
+    setTimeout(() => setQuestion(true), 150); // 질문 애니메이션 재실행
   };
 
   const handleServerResult = (result: {
@@ -170,16 +174,15 @@ const Conversation: React.FC<Props> = ({ setUserToken, setUserType }) => {
           <AudioRecorder
             start={isRecording}
             onResult={handleServerResult}
+            onVolumeChange={(db) => setDecibel(db)}
+
           />
 
-          {recordStart && (
-            <Animated.View style={[styles.userRecording, { opacity: userRecordingAnimation }]}>
-              <Image
-                source={require('../../assets/images/longwave.png')}
-                style={styles.userRecordingImage}
-              />
-            </Animated.View>
-          )}
+            {recordStart && (
+              <Animated.View style={[styles.userRecording, { opacity: userRecordingAnimation }]}>
+                <WaveForm decibel={decibel} />
+              </Animated.View>
+            )}
 
           {isLoading && <ActivityIndicator size="large" color="#531ea3" style={{ marginTop: 20 }} />}
 
@@ -206,13 +209,16 @@ const Conversation: React.FC<Props> = ({ setUserToken, setUserType }) => {
 
               <TouchableOpacity
                 onPress={() => {
-                  resetRecordingState();
-                  setIsRecording(true);
+                  resetRecordingState(); // 초기화
+                  setTimeout(() => {
+                    setRecordStart(true);     // 🔁 다시 트리거
+                    setIsRecording(true);     // 녹음 시작
+                  }, 300); // 짧은 딜레이를 줘야 렌더링 감지됨
                 }}
                 style={styles.redoButton}
               >
                 <Text style={styles.redoButtonText}>다시 녹음하기</Text>
-              </TouchableOpacity>
+            </TouchableOpacity> 
             </Animated.View>
           )}
         </SafeAreaView>
