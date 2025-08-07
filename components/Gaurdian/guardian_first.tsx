@@ -16,17 +16,17 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 type RootStackParamList = {
-  MainScreen_G: undefined; // Main_G 스크린을 네비게이터에 반드시 등록하세요
+  DashBoard_Main: undefined; // Main_G 스크린을 네비게이터에 반드시 등록하세요
   // 필요하다면 다른 스크린 타입도 여기에 추가
 };
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'MainScreen_G'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'DashBoard_Main'>;
 
 export default function Search() {
   const navigation = useNavigation<NavigationProp>();
 
   const handleNavigate = () => {
-    navigation.navigate('MainScreen_G');
+    navigation.navigate('DashBoard_Main');
   };
 
   return (

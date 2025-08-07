@@ -88,7 +88,7 @@ const Mypage: React.FC<{ navigation: any; setUserToken: (token: string | null) =
         return;
       }
 
-      const response = await API.get('/api/people', {
+      const response = await API.get('/api/people/my', {
         headers: {
           Authorization: `Bearer ${token}`,
         },

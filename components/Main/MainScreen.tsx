@@ -81,14 +81,19 @@ const handleLogout = useCallback(async () => {
 const fetchMonthlyEmotions = useCallback(async () => {
   setLoading(true);
   try {
-    const res = await API.post('/api/emotion/month', {
-      month,
-      year,
-    });
+    const formattedMonth = String(month).padStart(2, '0');
+    const url = `/api/diary/get_emotion_month/${year}-${formattedMonth}`;
 
-    if (res.status === 200 && Array.isArray(res.data.emotions)) {
-      console.log('[✅ 감정 데이터]', res.data.emotions); // ✅ 감정 배열 찍기
-      setEmotionData(res.data.emotions);
+    console.log('[📦 요청 URL]', url); // ✅ 콘솔에 year, month 포함한 최종 요청 경로 출력
+
+    const res = await API.get(url);
+
+    console.log('[전체]', res.data); 
+
+
+    if (res.status === 200 && Array.isArray(res.data.data)) {
+      console.log('[✅ 감정 데이터]', res.data.data); // ✅ 감정 배열 찍기
+      setEmotionData(res.data.data);
     } else {
       setEmotionData([]);
     }
@@ -118,7 +123,7 @@ useEffect(() => {
     if (!selectedDate) return;
     const emotionForDate =
       emotionData.find((item) => item.date === selectedDate)?.emotion ?? '';
-    navigation.navigate('DiaryDetail', {
+      navigation.navigate('DiaryDetail', {
       date: selectedDate,
       emotion: emotionForDate,
       content: '',

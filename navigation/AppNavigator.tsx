@@ -21,10 +21,9 @@ import Mypage from '../components/Mypage/Mypage';
 
 
 //보호자 화면
+import DashBoard_Main from '../components/Gaurdian/DashBoard/DashBoard_Main';
 import MainScreen_G from '../components/Gaurdian/Month_Screen/MainScreen_G';
 import GuardianFirst from '../components/Gaurdian/guardian_first';
-import FavoriteYear from '../components/Gaurdian/Favoite_Screen/favorite_year';
-import FavoriteMonth from '../components/Gaurdian/Favoite_Screen/favorite_month';
 import DiaryAndAnalyzeScreen_G from '../components/Gaurdian/DiaryAndAnalyze_G/DiaryAndAnalyzeScreen_G';
 import AlertScreen from '../components/Gaurdian/AlertScreen';
 
@@ -51,6 +50,7 @@ export type RootStackParamList = {
   Mypage: undefined;
 
   // 로그인 후 (보호자 전용)
+  DashBoard_Main:undefined;
   GuardianFirst: undefined;
   MainScreen_G : undefined;
   FavoriteYear : undefined;
@@ -149,6 +149,14 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({
               MainScreen_G은 setUserToken prop을 필수로 받기 때문에,
               component 속성 대신 아래처럼 render prop 방식으로 넘겨줍니다.
             */}
+            <Stack.Screen name="DashBoard_Main">
+              {props => <DashBoard_Main 
+              {...props}
+              setUserToken={setUserToken}
+              setUserType={setUserType}
+               />}
+            </Stack.Screen>
+            
             <Stack.Screen name="MainScreen_G">
               {props => <MainScreen_G 
               {...props}
@@ -156,8 +164,6 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({
               setUserType={setUserType}
                />}
             </Stack.Screen>
-            <Stack.Screen name="FavoriteYear" component={FavoriteYear} />
-            <Stack.Screen name="FavoriteMonth" component={FavoriteMonth}/>
             <Stack.Screen
                     name="DiaryAnalyze_G"
                     component={DiaryAndAnalyzeScreen_G}

@@ -40,6 +40,10 @@ export default function App() {
     };
 
     const initialize = async () => {
+      await AsyncStorage.removeItem('accessToken');
+      await AsyncStorage.removeItem('refreshToken');
+      await AsyncStorage.removeItem('guardianId');
+      console.log('✅ 초기화 완료 (accessToken, refreshToken, guardianId 제거됨)');
       const token = await AsyncStorage.getItem('accessToken');
 
       if (token) {

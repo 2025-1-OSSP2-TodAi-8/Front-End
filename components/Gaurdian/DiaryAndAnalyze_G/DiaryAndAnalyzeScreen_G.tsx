@@ -26,7 +26,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 
 // 차트와 감정 뷰 컴포넌트
-import DiaryRadarChartView from '../DiaryAndAnalyze_G/chart/DiaryRadarChartView_G';
+import DiaryRadarChartView from './chart/DiaryRadarChartView_G';
 import DiaryEmotionView from '../DiaryAndAnalyze_G/emotion/DiaryEmotionView_G';
 
 // “DiaryAnalyze_G” 화면의 route prop 타입
