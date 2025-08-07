@@ -35,78 +35,74 @@ export default function Login({ setUserToken, setUserType }: LoginProps) {
 
   const handleLogin = async () => {
     // ─── 테스트 계정 분기 ───
-    // 1) 일반 사용자 테스트 계정 (Main 화면으로 자동 전환)
-    if (userId === 'test' && password === '1234') {
+    if (userId === 'test1' && password === '1234') {
       await AsyncStorage.setItem('accessToken', 'dummy_access_token');
       await AsyncStorage.setItem('refreshToken', 'dummy_refresh_token');
       setUserToken('dummy_access_token');
-      setUserType('user'); // 일반 사용자
+      setUserType('user');
       await AsyncStorage.setItem('guardianId', '');
       navigation.navigate('Main');
       return;
     }
-
-    // 2) 보호자 테스트 계정 (Search 화면으로 자동 전환)
+  
     if (userId === 'guardian' && password === '1234') {
       await AsyncStorage.setItem('accessToken', 'dummy_access_token');
       await AsyncStorage.setItem('refreshToken', 'dummy_refresh_token');
       setUserToken('dummy_access_token');
-      setUserType('guardian'); // 보호자 역할
+      setUserType('guardian');
       await AsyncStorage.setItem('guardianId', userId);
       navigation.navigate('GuardianFirst');
       return;
-
-      // ★ 수정됨: 백엔드가 아닌 사용자가 입력한 userId를 guardianId로 그대로 저장
-
     }
-    // ────────────────────────────────
-
-    // 실제 백엔드 연동 로직 (서버가 준비되면 이 아래 코드가 실행됩니다)
+  
+    // ─── 실제 백엔드 로그인 ───
     try {
-      // ─── POST /api/people/signin ───
       const response = await API.post('/api/people/signin', {
         username: userId,
         password: password,
       });
-
-      // 응답 예: { refresh: "eyJhbGc...", access: "eyJhbGci...", user_type: "user" | "guardian" }
-      if (response.status === 200 && response.data) {
-        const { access, refresh, user_type } = response.data as {
-          access: string;
-          refresh: string;
-          user_type: 'user' | 'guardian';
-        };
-
-        // 1) AsyncStorage에 두 토큰 저장
-        await AsyncStorage.setItem('accessToken', access);
-        await AsyncStorage.setItem('refreshToken', refresh);
-
-        // 2) 상위 컴포넌트로 userType, 토큰 전달
-        setUserToken(access);
-        setUserType(user_type); // ★ 수정됨: 백엔드가 내려준 user_type을 전달
-
-        // 3) 로그인 종류에 따라 분기
-        if (user_type === 'user') {
-          // 일반 사용자 → guardianId는 빈 문자열로 저장
-          await AsyncStorage.setItem('guardianId', ''); // ★ 수정됨
-          navigation.navigate('Main');
-        } else if (user_type === 'guardian') {
-          // 보호자 → 사용자가 입력한 userId를 guardianId로 저장
-          await AsyncStorage.setItem('guardianId', userId); // ★ 수정됨
-          navigation.navigate('GuardianFirst');
-        } else {
-          // 예외적인 경우
-          await AsyncStorage.setItem('guardianId', ''); // 안전 차원에서 초기화
-          navigation.navigate('Main');
+  
+      if (response.status === 200 && response.data?.success) {
+        const data = response.data.data;
+  
+        if (!data?.accessToken || !data?.refreshToken) {
+          throw new Error('응답에 토큰이 없습니다.');
         }
+  
+        const accessToken = data.accessToken;
+        const refreshToken = data.refreshToken;
+  
+        // ⚠️ user_type은 응답에 없으므로 수동 분기 (임시)
+        const user_type: 'user' | 'guardian' = userId === 'guardian' ? 'guardian' : 'user';
+  
+        // 1) 토큰 저장
+        await AsyncStorage.setItem('accessToken', accessToken);
+        await AsyncStorage.setItem('refreshToken', refreshToken);
+  
+        // 2) 상태 설정
+        setUserToken(accessToken);
+        setUserType(user_type);
+  
+        // 3) 화면 전환
+        if (user_type === 'user') {
+          await AsyncStorage.setItem('guardianId', '');
+          navigation.navigate('Main');
+        } else {
+          await AsyncStorage.setItem('guardianId', userId);
+          navigation.navigate('GuardianFirst');
+        }
+  
       } else {
-        Alert.alert('로그인 실패', '아이디 또는 비밀번호가 올바르지 않습니다.');
+        const message = response.data?.error?.message || '아이디 또는 비밀번호가 올바르지 않습니다.';
+        Alert.alert('로그인 실패', message);
       }
+  
     } catch (error: any) {
       console.error('[Login] 서버 요청 에러:', error);
       Alert.alert('오류 발생', '서버에 연결할 수 없습니다.');
     }
   };
+  
 
   return (
     <SafeAreaView style={styles.container}>

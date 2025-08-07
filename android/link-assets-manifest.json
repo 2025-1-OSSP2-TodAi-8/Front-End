@@ -1,0 +1,13 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "assets/fonts/ADLaMDisplay-Regular.ttf",
+      "sha1": "58d2e6ceb2fffb6468891592754d3db422587985"
+    },
+    {
+      "path": "assets/fonts/온글잎 콘콘체.ttf",
+      "sha1": "031e02fc6f56dded1fe2dbdf9906994ac4702f78"
+    }
+  ]
+}
