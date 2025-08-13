@@ -1,17 +1,25 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useEffect, useState } from 'react';
-import { View, TouchableOpacity, SafeAreaView, Text, StyleSheet, FlatList, Alert as RNAlert,} from 'react-native';
+import {
+  View,
+  TouchableOpacity,
+  SafeAreaView,
+  Text,
+  StyleSheet,
+  FlatList,
+  Alert as RNAlert,
+} from 'react-native';
 import API from '../../api/axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface BackendNotification {
-  sharing_id: number;
-  protector_name: string;
-  '공개범위'?: string;
+  sharingId: string;
+  protectorName: string;
+  showRange?: 'partial' | 'full';
 }
 
 interface AlertUI {
-  id: number;
+  id: string; // sharingId는 문자열로 관리
   from: string;
   status: 'unmatched' | 'rejected' | 'accepted';
 }
@@ -26,16 +34,23 @@ export default function AlertScreen() {
   const fetchAlert = async () => {
     try {
       const token = await AsyncStorage.getItem('accessToken');
-      const response = await API.get('/api/people/');
-      const data = response.data;
+      const response = await API.get('/api/people/my', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = response.data?.data;
       console.log('알림 받은 데이터: ', data);
 
-      const rawNotification: BackendNotification[] = Array.isArray(data.notification) ? data.notification : [];
+      const rawNotification: BackendNotification[] = Array.isArray(
+        data?.notification
+      )
+        ? data.notification
+        : [];
 
-      const mappedList: AlertUI[] = rawNotification.map(item => ({
-        id: item.sharing_id,
-        from: item.protector_name,
-        status: 'unmatched', 
+      const mappedList: AlertUI[] = rawNotification.map((item) => ({
+        id: item.sharingId,
+        from: item.protectorName,
+        status: 'unmatched',
       }));
 
       setAlertList(mappedList);
@@ -44,16 +59,21 @@ export default function AlertScreen() {
     }
   };
 
-  const handleAlert = async (sharingId: number, action: 'accept' | 'reject') => {
+  const handleAlert = async (
+    sharingId: string,
+    action: 'accept' | 'reject'
+  ) => {
     try {
-      const response = await API.post('/api/people/sharing/accept', {
-          sharing_id: sharingId,
-          action,
-      });
-      RNAlert.alert('알림', response.data.message);
+      const token = await AsyncStorage.getItem('accessToken');
+      const response = await API.post(
+        '/api/people/sharing/accept',
+        { sharingId, action }, // camelCase
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
+      RNAlert.alert('알림', response?.data?.message ?? '처리되었습니다.');
       // 수락/거절 후, 해당 알림 리스트에서 제거
-      setAlertList(prev => prev.filter(item => item.id !== sharingId));
+      setAlertList((prev) => prev.filter((item) => item.id !== sharingId));
     } catch (error) {
       console.error(`${action} 실패:`, error);
       RNAlert.alert('오류', `${action === 'accept' ? '수락' : '거절'} 실패`);
@@ -93,7 +113,7 @@ export default function AlertScreen() {
       ) : (
         <FlatList
           data={alertList}
-          keyExtractor={item => item.id.toString()}
+          keyExtractor={(item) => item.id} // 문자열 그대로 사용
           renderItem={renderAlert}
           contentContainerStyle={styles.listContainer}
         />
