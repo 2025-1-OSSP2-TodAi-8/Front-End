@@ -8,11 +8,11 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
-
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import API from "../../../api/axios";
 
+// UI에서 사용하는 검색 결과 타입(부모와 키 통일)
 export interface Search_User {
-  userId: string;
   userName: string;
   userBirth: string;
 }
@@ -20,43 +20,50 @@ export interface Search_User {
 interface Props {
   user: Search_User | null;
   setConnectUser: (user: Search_User | null) => void;
+  searchText?: string; // 유저코드 (target_user_code)
 }
 
-const DashBoard_Connect: React.FC<Props> = ({ user, setConnectUser }) => {
+const DashBoard_Connect: React.FC<Props> = ({ user, setConnectUser, searchText }) => {
   const handleConnectRequest = async () => {
-    if (!user) return;
+    if (!searchText) {
+      Alert.alert("요청 불가", "유저코드가 없습니다.");
+      return;
+    }
 
     try {
-      const response = await API.post("/api/connect/request", null, {
-        headers: {
-          userId: user.userId,
-        },
-      });
+      const token = await AsyncStorage.getItem("accessToken");
+      const res = await API.post(
+        "/api/people/sharing/request",
+        { target_user_code: searchText }, // ✅ 명세서 바디
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-      const data = response.data;
-
-      if ("message" in data && "target_user_id" in data) {
-        Alert.alert("연동 요청 완료", data.message);
-        setConnectUser(null); // 요청 성공 시 사용자 정보 초기화
+      const { success, data, error } = res.data ?? {};
+      if (success) {
+        // success:true, data:"연동 요청 성공"
+        Alert.alert("연동 요청", typeof data === "string" ? data : "연동 요청 성공");
+        setConnectUser(null);
       } else {
-        Alert.alert("실패", "알 수 없는 응답입니다.");
+        // 이미 요청했을 때: error.code === "40010"
+        const msg = error?.message || "연동 요청에 실패했습니다.";
+        Alert.alert(error?.code === "40010" ? "알림" : "실패", msg);
       }
-    } catch (error) {
+    } catch (e) {
+      console.error("연동 요청 에러:", e);
       Alert.alert("연동 요청 실패", "요청 중 오류가 발생했습니다.");
-      console.error("연동 요청 에러:", error);
     }
   };
 
   return (
     <SafeAreaView style={styles.box}>
       <Text style={styles.title}>연동하기</Text>
-  
+
       <View style={styles.rowContainer}>
         <Image
           source={require("../../../assets/images/Connect.png")}
           style={styles.icon}
         />
-  
+
         {!user ? (
           <View style={styles.noUserContainer}>
             <Text style={styles.infoText}>{"검색된 사용자\n정보가 없습니다."}</Text>
@@ -64,8 +71,8 @@ const DashBoard_Connect: React.FC<Props> = ({ user, setConnectUser }) => {
         ) : (
           <View>
             <Text style={styles.info}>
-              <Text style={styles.label}>아이디: </Text>
-              {user.userId}
+              <Text style={styles.label}>유저코드: </Text>
+              {searchText}
             </Text>
             <Text style={styles.info}>
               <Text style={styles.label}>닉네임: </Text>
@@ -83,7 +90,6 @@ const DashBoard_Connect: React.FC<Props> = ({ user, setConnectUser }) => {
       </View>
     </SafeAreaView>
   );
-  
 };
 
 export default DashBoard_Connect;
@@ -150,12 +156,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#666",
     padding: 20,
-    textAlign: "center", // 중앙 정렬
-    lineHeight: 18,       // 줄간격
+    textAlign: "center",
+    lineHeight: 18,
   },
   noUserContainer: {
     justifyContent: "center",
-    paddingHorizontal:5,
+    paddingHorizontal: 5,
   },
-  
 });

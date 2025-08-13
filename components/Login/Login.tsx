@@ -63,34 +63,34 @@ export default function Login({ setUserToken, setUserType }: LoginProps) {
       });
   
       if (response.status === 200 && response.data?.success) {
-        const data = response.data.data;
-  
-        if (!data?.accessToken || !data?.refreshToken) {
-          throw new Error('응답에 토큰이 없습니다.');
+        const data = response.data?.data;
+        const accessToken = data?.accessToken;
+        const refreshToken = data?.refreshToken;
+        const userTypeRaw = String(data?.userType ?? '').toLowerCase(); // 'USER' → 'user'
+
+        console.log('userType raw:', response.data?.data?.userType);
+
+        if (!accessToken || !refreshToken || !userTypeRaw) {
+          throw new Error('로그인 응답이 올바르지 않습니다.');
         }
-  
-        const accessToken = data.accessToken;
-        const refreshToken = data.refreshToken;
-  
-        // ⚠️ user_type은 응답에 없으므로 수동 분기 (임시)
-        const user_type: 'user' | 'guardian' = userId === 'guardian' ? 'guardian' : 'user';
-  
-        // 1) 토큰 저장
+        if (userTypeRaw !== 'user' && userTypeRaw !== 'guardian') {
+          throw new Error(`알 수 없는 사용자 유형: ${data?.userType}`);
+        }
+
         await AsyncStorage.setItem('accessToken', accessToken);
         await AsyncStorage.setItem('refreshToken', refreshToken);
-  
-        // 2) 상태 설정
+
         setUserToken(accessToken);
-        setUserType(user_type);
-  
-        // 3) 화면 전환
-        if (user_type === 'user') {
+        setUserType(userTypeRaw as 'user' | 'guardian');
+
+        if (userTypeRaw === 'user') {
           await AsyncStorage.setItem('guardianId', '');
           navigation.navigate('Main');
         } else {
           await AsyncStorage.setItem('guardianId', userId);
           navigation.navigate('GuardianFirst');
         }
+
   
       } else {
         const message = response.data?.error?.message || '아이디 또는 비밀번호가 올바르지 않습니다.';
