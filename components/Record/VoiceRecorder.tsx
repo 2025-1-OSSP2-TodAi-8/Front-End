@@ -101,6 +101,9 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ start, onResult, onVolume
 
     const data = new FormData();
     data.append('date', formattedDate);
+    //추가된부분
+    data.append('emotion', JSON.stringify([0, 0, 0, 1, 0, 0]));
+    data.append('summary', '');
     data.append('audio', {
       uri: filePath,
       type: 'audio/mp4',
@@ -108,7 +111,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ start, onResult, onVolume
     } as any);
 
     try {
-      const response = await fetch('http://121.189.72.83:8888/api/diary/record', {
+      const response = await fetch('https://port-0-back-end-ma5ak09e7076228d.sel4.cloudtype.app/api/diary/record', {
         method: 'POST',
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -119,7 +122,14 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ start, onResult, onVolume
 
       const resultJson = await response.json();
       console.log('서버 응답:', resultJson);
-      onResult(resultJson);
+
+      // 부모 컴포넌트(Conversation)에게 결과 전달
+      onResult({
+        success: resultJson.success ? 1 : 0, 
+        emotion: resultJson.data?.emotionRate||[0, 0, 0, 0, 0, 0, 0],
+        summary: resultJson.data?.summary || '', 
+        message: resultJson.error || '', 
+      });
     } catch (error) {
       console.error('업로드 실패:', error);
       onResult({

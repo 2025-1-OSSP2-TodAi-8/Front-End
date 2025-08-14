@@ -31,7 +31,7 @@ type Props = {
  * Response 예시 (실패, 일기 없음 등):
  *   { "success": 0, "message": "2024-05-05의 일기를 찾을 수 없습니다." }
  */
-const FAVORITE_API_URL = 'http://121.189.72.83:8888/api/diary/marking';
+const FAVORITE_API_URL = 'https://port-0-back-end-ma5ak09e7076228d.sel4.cloudtype.app/api/diary/marking';
 
 const DiaryDetailActions = ({ date, onSave }: Props) => {
   // 즐겨찾기 상태
@@ -58,13 +58,12 @@ const DiaryDetailActions = ({ date, onSave }: Props) => {
         }
 
         // 서버에 POST 요청을 보낼 때 Authorization 헤더 포함
-        const response = await fetch(FAVORITE_API_URL, {
-          method: 'POST',
+        const response = await fetch(`${FAVORITE_API_URL}/${date}`, {
+          method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ date }),
         });
 
         const data = await response.json();
@@ -72,11 +71,11 @@ const DiaryDetailActions = ({ date, onSave }: Props) => {
         // 콘솔 로그 추가: 초기 응답 확인
         console.log('[초기 마킹 상태 응답]', data);
 
-        if (response.ok && data.success === 1) {
-          setIsFavorite(!!data.marking);
+        if (response.ok && data.success) {
+          setIsFavorite(!!data.data.isMarking);
         } else {
           // 예: 일기가 없어서 success: 0 반환된 경우
-          const msg = data.message || '초기 즐겨찾기 상태를 가져오지 못했습니다.';
+          const msg = data.error?.message || '초기 즐겨찾기 상태를 가져오지 못했습니다.';
           console.warn('[초기 마킹]', msg);
         }
       } catch (err) {
@@ -104,13 +103,12 @@ const DiaryDetailActions = ({ date, onSave }: Props) => {
       }
 
       // 서버에 POST 요청을 보낼 때 Authorization 헤더 포함
-      const response = await fetch(FAVORITE_API_URL, {
-        method: 'POST',
+      const response = await fetch(`${FAVORITE_API_URL}/${date}`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ date }),
       });
 
       const data = await response.json();
@@ -118,8 +116,8 @@ const DiaryDetailActions = ({ date, onSave }: Props) => {
       // 콘솔 로그 추가: 토글 후 응답 확인
       console.log('[토글 후 응답]', data);
 
-      if (response.ok && data.success === 1) {
-        const newMarking = !!data.marking;
+      if (response.ok && data.success) {
+        const newMarking = !!data.data.isMarking;
         setIsFavorite(newMarking);
 
         if (newMarking) {
