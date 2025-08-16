@@ -1,6 +1,4 @@
 /* eslint-disable react-native/no-inline-styles */
-// 파일: src/components/Conversation/Conversation.tsx
-
 import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
@@ -21,7 +19,7 @@ import type { RootStackParamList } from '../../navigation/AppNavigator';
 import MenuIcon from '../MenuBar/MenuIcon';
 import MenuBar from '../MenuBar/MenuBar';
 import WithMenuLayout from '../MenuBar/MenuBarLayout';
-import WaveForm from './WaveForm'
+import WaveForm from './WaveForm';
 
 const { width } = Dimensions.get('window');
 
@@ -35,7 +33,7 @@ const Conversation: React.FC<Props> = ({ setUserToken, setUserType }) => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const dateParam = route.params?.date;
 
-  const [showQuestion, setQuestion] = useState(false);
+  // const [showQuestion, setQuestion] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordStart, setRecordStart] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
@@ -54,78 +52,61 @@ const Conversation: React.FC<Props> = ({ setUserToken, setUserType }) => {
   const [overlayText, setOverlayText] = useState('');
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setQuestion(true);
-    }, 300);
-    return () => clearTimeout(timer);
+    Animated.timing(questionAnimation, {
+      toValue: 1,
+      duration: 150, // 원하면 더 줄여도 됨
+      useNativeDriver: true,
+    }).start();
   }, []);
 
-  useEffect(() => {
-    if (showQuestion) {
-      Animated.timing(questionAnimation, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [questionAnimation, showQuestion]);
-
-  const toggleRecording = () => {
-    setIsRecording(prev => {
-      const newState = !prev;
-      if (newState) {
-        setRecordStart(true);
-        userRecordingAnimation.setValue(0);
-        Animated.timing(userRecordingAnimation, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }).start();
-      }
-      return newState;
-    });
-  };
-
   const resetRecordingState = () => {
-    setRecordStart(false);       // 파형 숨기기
+    setRecordStart(false);
     setShowSummary(false);
     setSummaryText(null);
     setEmotionArray([]);
-    setQuestion(false); // 질문도 다시 보여줄 거면 이거 유지
-    setTimeout(() => setQuestion(true), 150); // 질문 애니메이션 재실행
+    
   };
 
-  const handleServerResult = (result: {
-    success: number;
-    emotion: number[];
-    summary: string;
-    message?: string;
-  }) => {
-    setIsLoading(false);
-    if (result.success === 1) {
-      setSummaryText(result.summary && result.summary.trim().length > 0 ? result.summary : null);
-      setEmotionArray(result.emotion || []);
-      summaryAnimation.setValue(0);
-      Animated.timing(summaryAnimation, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-      setShowSummary(true);
+  const beginRecording = () => {
+    resetRecordingState();
+    setRecordStart(true);
+    userRecordingAnimation.setValue(0);
+    Animated.timing(userRecordingAnimation, { toValue: 1, useNativeDriver: true }).start();
+    setIsRecording(true);            // 녹음 시작
+  };
+
+  const handleMicPress = () => {
+    if (!isRecording) {
+      // 시작: 로딩 표시 금지
+      beginRecording();
     } else {
-      setOverlayText('너무 짧습니다!\n오늘 하루에 대해 좀 더 말해주세요');
-      setShowOverlay(true);
-      resetRecordingState();
+      // 종료: 업로드 시작되므로 이때만 로딩 표시
+      setIsLoading(true);
+      setIsRecording(false);
     }
+  };
+
+  const handleServerResult = (r: { success: number; emotion: number[]; summary: string; message?: string }) => {
+    setIsLoading(false);
+    if (r.success === 1) {
+      setSummaryText(r.summary?.trim()?.length ? r.summary : null);
+      setEmotionArray(r.emotion || []);
+      summaryAnimation.setValue(0);
+      Animated.timing(summaryAnimation, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+      setShowSummary(true);
+      return;
+    }
+    if (r.success === 2) setOverlayText('너무 짧습니다!\n오늘 하루에 대해 좀 더 말해주세요');
+    else setOverlayText(r.message || '업로드 중 오류가 발생했습니다.');
+    setShowOverlay(true);
+    resetRecordingState();
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F5E8FF' }}>
       <WithMenuLayout setUserToken={setUserToken} setUserType={setUserType}>
         <SafeAreaView style={styles.container}>
-          {!menuVisible && (
-            <MenuIcon isOpen={false} onPress={() => setMenuVisible(true)} />
-          )}
+          {!menuVisible && <MenuIcon isOpen={false} onPress={() => setMenuVisible(true)} />}
           <View style={styles.header}>
             <Text style={styles.title}>TodAi</Text>
           </View>
@@ -149,24 +130,22 @@ const Conversation: React.FC<Props> = ({ setUserToken, setUserType }) => {
             {dateParam && (
               <TouchableOpacity onPress={() => navigation.navigate('Main')}>
                 <Text style={styles.dateText}>
-                  {`${dateParam.slice(0, 4)}년 ${parseInt(dateParam.slice(5, 7), 10)}월 ${parseInt(dateParam.slice(8, 10), 10)}일`}
+                  {`${dateParam.slice(0, 4)}년 ${parseInt(dateParam.slice(5, 7), 10)}월 ${parseInt(
+                    dateParam.slice(8, 10),
+                    10
+                  )}일`}
                 </Text>
               </TouchableOpacity>
             )}
             <Text style={styles.subtitle}>오늘 하루를 기록해 주세요</Text>
-            {showQuestion && (
-              <Animated.View style={[styles.question, { opacity: questionAnimation }]}>
-                <Text style={styles.text}>오늘 하루는 어떠셨나요?</Text>
-              </Animated.View>
-            )}
+            <Animated.View style={[styles.question, { opacity: questionAnimation }]}>
+              <Text style={styles.text}>오늘 하루는 어떠셨나요?</Text>
+            </Animated.View>
           </View>
 
           <View style={styles.micContainer}>
             <View style={styles.divider2} />
-            <TouchableOpacity onPress={() => {
-              setIsLoading(true);
-              toggleRecording();
-            }} style={styles.micButton}>
+            <TouchableOpacity onPress={handleMicPress} style={styles.micButton}>
               <Image source={require('../../assets/images/mic.png')} style={styles.mic} />
             </TouchableOpacity>
           </View>
@@ -175,14 +154,13 @@ const Conversation: React.FC<Props> = ({ setUserToken, setUserType }) => {
             start={isRecording}
             onResult={handleServerResult}
             onVolumeChange={(db) => setDecibel(db)}
-
           />
 
-            {recordStart && (
-              <Animated.View style={[styles.userRecording, { opacity: userRecordingAnimation }]}>
-                <WaveForm decibel={decibel} />
-              </Animated.View>
-            )}
+          {recordStart && (
+            <Animated.View style={[styles.userRecording, { opacity: userRecordingAnimation }]}>
+              <WaveForm decibel={decibel} style={{ width: '100%', height: '100%' }} />
+            </Animated.View>
+          )}
 
           {isLoading && <ActivityIndicator size="large" color="#531ea3" style={{ marginTop: 20 }} />}
 
@@ -202,23 +180,15 @@ const Conversation: React.FC<Props> = ({ setUserToken, setUserType }) => {
 
               <Text style={styles.summaryTitle}>요약:</Text>
               <Text style={styles.summaryText}>
-                {summaryText && summaryText.trim().length > 0
-                  ? summaryText
-                  : '@님의 오늘 이야기를 불러올 수 없습니다.'}
+                {summaryText && summaryText.trim().length > 0 ? summaryText : '@님의 오늘 이야기를 불러올 수 없습니다.'}
               </Text>
 
               <TouchableOpacity
-                onPress={() => {
-                  resetRecordingState(); // 초기화
-                  setTimeout(() => {
-                    setRecordStart(true);     // 🔁 다시 트리거
-                    setIsRecording(true);     // 녹음 시작
-                  }, 300); // 짧은 딜레이를 줘야 렌더링 감지됨
-                }}
+                onPress={() => setTimeout(beginRecording, 150)}
                 style={styles.redoButton}
               >
                 <Text style={styles.redoButtonText}>다시 녹음하기</Text>
-            </TouchableOpacity> 
+              </TouchableOpacity>
             </Animated.View>
           )}
         </SafeAreaView>
@@ -231,8 +201,7 @@ const Conversation: React.FC<Props> = ({ setUserToken, setUserType }) => {
                 <TouchableOpacity
                   onPress={() => {
                     setShowOverlay(false);
-                    resetRecordingState();
-                    setIsRecording(true);
+                    setTimeout(beginRecording);
                   }}
                   style={styles.overlayButton}
                 >
@@ -304,6 +273,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 10,
     elevation: 7,
+    zIndex: 2, // ← 추가
   },
   text: {
     fontSize: 14,
@@ -351,8 +321,9 @@ const styles = StyleSheet.create({
     top: 255,
     right: 20,
     borderRadius: 10,
+    overflow: 'hidden',
     justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'stretch',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.25,
@@ -446,5 +417,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+
 
 export default Conversation;
