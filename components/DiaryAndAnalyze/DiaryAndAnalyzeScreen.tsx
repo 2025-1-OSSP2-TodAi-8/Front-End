@@ -30,7 +30,7 @@ import WithMenuLayout from '../MenuBar/MenuBarLayout';
 
 Dimensions.get('window');
 
-const EMOTION_DAY_PATH = '/api/emotion/day';
+const EMOTION_DAY_PATH = '/api/diary/get_emotion_day';
 
 const DiaryAndAnalyzeScreen: React.FC<{ navigation: any; setUserToken: (token: string | null) => void; setUserType: (type: 'user' | 'guardian' | null) => void;}> = ({ navigation, setUserToken,setUserType }) => {
     const route = useRoute<RouteProp<RootStackParamList, 'DiaryDetail'>>();
@@ -49,20 +49,19 @@ const DiaryAndAnalyzeScreen: React.FC<{ navigation: any; setUserToken: (token: s
 
     const fetchOneDayEmotion = async (year: number, month: number, day: number) => {
         try {
-            const response = await API.post(EMOTION_DAY_PATH, {
-                year,
-                month,
-                day,
-            });
+            const dateStr=`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const response = await API.get(`${EMOTION_DAY_PATH}/${dateStr}`);
             if (response.status === 200 && response.data) {
-                const data = response.data;
-                return {
+                const {success, data, error} = response.data;
+                if(success&&data){
+                    return {
                     emotion: data.emotion || '',
-                    emotion_rate: Array.isArray(data.emotion_rate)
-                        ? data.emotion_rate
+                    emotion_rate: Array.isArray(data.emotionRate)
+                        ? data.emotionRate
                         : [0, 0, 0, 0, 0, 0, 0],
                     summary: data.summary ?? '',
                 };
+                }
             } else {
                 return null;
             }

@@ -68,14 +68,16 @@ const FavoriteScreenMonth: React.FC<Props> = ({ navigation, setUserToken,setUser
           return;
         }
 
-        const res = await fetch('http://121.189.72.83:8888/api/diary/marked_month', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ year, month }),
-        });
+        const formattedMonth=String(month).padStart(2, '0');
+        const res = await fetch(`https://port-0-back-end-ma5ak09e7076228d.sel4.cloudtype.app/api/diary/get_emotion_month/marked/${year}-${formattedMonth}`,
+          {
+            method: 'GET', 
+            headers: {
+              'Accept': 'application/json', 
+              'Authorization': `Bearer ${token}`,
+            },
+          }
+        );
 
         if (res.status !== 200) {
           setEntries([]);
@@ -83,13 +85,15 @@ const FavoriteScreenMonth: React.FC<Props> = ({ navigation, setUserToken,setUser
         }
 
         const json = await res.json();
-        const dataList: MonthEntry[] = Array.isArray(json.emotions)
-          ? json.emotions.map((item: any) => ({
+        const dataList: MonthEntry[] = Array.isArray(json.data)
+          ? json.data.map((item: any) => ({
               date: item.date,
               emotion: item.emotion,
               summary: item.summary,
             }))
           : [];
+          //날짜순 정렬
+          dataList.sort((a, b)=>new Date(a.date).getTime()-new Date(b.date).getTime());
 
         setEntries(dataList);
       } catch (err) {

@@ -39,18 +39,21 @@ const DiaryEmotionView = ({ emotion, text, onPrevDate, onNextDate, currentDate }
         return;
       }
 
-      const [year, month, day] = currentDate.split('-').map(v => Number(v));
+      const [year, month, date] = currentDate.split('-').map(v => Number(v));
 
-      const response = await axios.post(
-        'http://121.189.72.83:8888/api/diary/get_record',
-        { year, month, day },
+      const response = await fetch(
+        `https://port-0-back-end-ma5ak09e7076228d.sel4.cloudtype.app/api/diary/record/${year}-${month}-${date}`,
         {
-          headers: { Authorization: `Bearer ${token}` },
-          responseType: 'blob',
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
         }
+        
       );
 
-      const blobData = response.data;
+      //fetch 응답 -> blob 변환, 기존: response.data
+      const blobData = await response.blob();
       const reader = new FileReader();
 
       reader.onloadend = async () => {

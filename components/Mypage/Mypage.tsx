@@ -16,31 +16,32 @@ import WithMenuLayout from '../MenuBar/MenuBarLayout';
 import MenuIcon from '../MenuBar/MenuIcon';
 import MenuBar from '../MenuBar/MenuBar';
 
-const VALID_RANGE = ['partial', 'full'] as const;
-type ShowRange = typeof VALID_RANGE[number];
+type ShowRange='partial'|'full';
+const VALID_RANGE: ShowRange[] = ['partial', 'full'];
 
-type SharingItem = {
-  protectorId: number;
-  protectorName: string;
-  showRange: ShowRange;
-};
-
-type MyData = {
-  userCode: string; // 문자열
-  name: string;
-  sharing: SharingItem[];
-  notification?: Array<{ sharingId: string; protectorName: string; showRange: ShowRange }>;
-};
-
-const Mypage: React.FC<{
-  navigation: any;
-  setUserToken: (token: string | null) => void;
-  setUserType: (type: 'user' | 'guardian' | null) => void;
-}> = ({ navigation, setUserToken, setUserType }) => {
+const Mypage: React.FC<{ navigation: any; setUserToken: (token: string | null) => void; setUserType: (type: 'user' | 'guardian' | null) => void; }> = ({
+  navigation,
+  setUserToken,
+  setUserType
+}) => {
   const [Range, setRange] = useState<Record<number, ShowRange>>({});
-  const [userInfo, setUserInfo] = useState<MyData | null>(null);
+  const [userInfo, setUserInfo] = useState<null | {
+    userId: number;
+    name: string;
+    sharing: Array<{
+      protectorId: number;
+      protectorName: string;
+      showRange: ShowRange;
+    }>;
+  }>(null);
   const [loading, setLoading] = useState(true);
   const [menuVisible, setMenuVisible] = useState(false);
+
+  //받은 메세지
+  const [receivedMessages, setReceivedMessages]=useState<
+  { sender: String; content: String; date: string } [] >([]);
+
+  // ✅ 로그아웃 핸들러 (MainScreen 구조와 동일)
 
   useEffect(() => {
     if (userInfo?.sharing?.length) {
@@ -68,8 +69,8 @@ const Mypage: React.FC<{
       const response = await API.post(
         '/api/people/update/showrange',
         {
-          protectorId,
-          showRange: selected, // camelCase
+          guardianId: protectorId,
+          showRange: selected,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -81,26 +82,45 @@ const Mypage: React.FC<{
   };
 
   const fetchUser = async () => {
-    try {
-      const token = await AsyncStorage.getItem('accessToken');
-      if (!token) {
-        Alert.alert('토큰 오류', '로그인이 필요합니다.');
-        return;
-      }
-      const response = await API.get('/api/people/my', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const data: MyData = response.data?.data; // 스펙상 data 안쪽
-      console.log('✅ 유저 정보 응답:', data);
-      setUserInfo(data);
-    } catch (error: any) {
-      console.log('❌ 유저 정보 불러오기 실패:', error);
-      Alert.alert('오류', '마이페이지 정보를 불러오지 못했습니다.');
-    } finally {
-      setLoading(false);
+  try {
+    const token = await AsyncStorage.getItem('accessToken');
+    if (!token) {
+      Alert.alert('토큰 오류', '로그인이 필요합니다.');
+      return;
     }
-  };
+    const response = await API.get('/api/people/my', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    console.log('✅ API 응답:', response.data.data);
+
+    const raw=response.data.data;
+    const mappedSharing = (raw.sharing||[]).map((item: any)=>({
+      protectorId: item.protectorId, 
+      protectorName: item.protectorName, 
+      showRange: item.showRange,
+    }));
+
+    setUserInfo({
+      userId: raw.userCode, 
+      name: raw.name, 
+      sharing: mappedSharing, 
+    }); 
+  } catch (error) {
+    console.log('❌ fetchUser 오류:', error);
+    Alert.alert('오류', '마이페이지 정보를 불러오지 못했습니다.');
+  } finally {
+    setLoading(false);
+  }
+};
+
+  // 받은 메세지 테스트 -> 나중에 삭제
+  useEffect(() => {
+    setReceivedMessages([
+      { sender: '보호자 A', content: '잘 지내고 있니?', date: '2025-08-10' },
+    ]);
+  }, []);
 
   useEffect(() => {
     fetchUser();
@@ -150,7 +170,7 @@ const Mypage: React.FC<{
 
         <View style={styles.itemBox2}>
           <Text style={styles.name}>이름: {userInfo.name}</Text>
-          <Text style={styles.name}>유저 코드: {userInfo.userCode}</Text>
+          <Text style={styles.name}>유저 ID: {userInfo.userId}</Text>
         </View>
 
         <Text style={styles.sectionTitle}>현재 연동된 보호자</Text>
@@ -195,11 +215,30 @@ const Mypage: React.FC<{
         ) : (
           <Text style={styles.subText}>연동된 보호자가 없습니다.</Text>
         )}
+        <Text style={styles.sectionTitle2}>받은 메세지</Text>
+        {receivedMessages&&receivedMessages.length>0?(
+          <FlatList
+            data={receivedMessages}
+            keyExtractor={(item, index)=>index.toString()}
+            renderItem={({item})=>(
+              <TouchableOpacity 
+              style={styles.messageBox}
+              onPress={()=>navigation.navigate('ReceiveMessage', {message: item})}
+              >
+                <Text style={styles.messageSender}>From. {item.sender}님</Text>
+                <Text style={styles.messageContent}>{item.content}</Text>
+                <Text style={styles.messageDate}>{item.date}</Text>
+              </TouchableOpacity>
+            )}
+          contentContainerStyle={{paddingBottom:20}}
+          />
+        ):(
+          <Text style={styles.subText}>받은 메세지가 없습니다. </Text>
+        )}
       </SafeAreaView>
     </WithMenuLayout>
   );
 };
-
 export default Mypage;
 
 const styles = StyleSheet.create({
@@ -280,4 +319,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  sectionTitle2: {
+    fontSize: 17,
+    fontWeight: '700',
+    marginLeft: 20,
+    marginTop: 20,
+    marginBottom: 10,
+    color: '#531ea3',
+  }, 
+  messageBox: {
+    backgroundColor: '#fff', 
+    padding: 15, 
+    borderRadius: 10, 
+    marginHorizontal: 20, 
+    marginBottom: 10, 
+    elevation: 1, 
+  }, 
+  messageSender: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 4,
+  }, 
+  messageContent: {
+    fontSize: 14,
+    marginBottom: 4,
+  }, 
+  messageDate: {
+    fontSize: 12,
+    color: '#777',
+  }, 
 });

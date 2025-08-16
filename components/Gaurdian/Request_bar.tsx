@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import API from '../../api/axios'; // 백엔드 호출용
 import { useLink } from './LinkContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 const DRAWER_WIDTH = SCREEN_WIDTH * 0.75;
@@ -38,7 +39,7 @@ const Request_bar: React.FC<RequestBarProps> = ({
 
   const [searchId, setSearchId] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
-  const [searchResult, setSearchResult] = useState<null | { name: string; found_id: string }>(null);
+  const [searchResult, setSearchResult] = useState<null | { name: string; found_id: string; birthdate?: string }>(null);
   const [connectedUser, setConnectedUser] = useState<string | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -91,7 +92,7 @@ const Request_bar: React.FC<RequestBarProps> = ({
     try {
       if (searchId === 'test1') {
         setTimeout(() => {
-          const dummy = { name: '더미유저', found_id: 'test1' };
+          const dummy = { name: '더미유저', found_id: 'test1', birthdate: '2000-01-01'};
           setSearchResult(dummy);
           setSearchId(dummy.found_id);
           setLoading(false);
@@ -99,15 +100,22 @@ const Request_bar: React.FC<RequestBarProps> = ({
         }, 500);
         return;
       }
-      const res = await API.post('/api/people/search', { search_id: searchId });
+      const token=await AsyncStorage.getItem('accessToken');
+      const res = await API.post('/api/people/search', { target_user_code: searchId }, 
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, 
+          },
+        }
+      );
       console.log('[Request_bar] 검색 API 응답 →', res.data);
 
-      if (res.status === 200 && res.data.exists) {
-        setSearchResult({ name: res.data.name, found_id: res.data.found_id });
-        setSearchId(res.data.found_id);
+      if (res.status === 200 && res.data.success && res.data.data.exists) {
+        //아이디 표시하지 않고 생년월일 추가
+        setSearchResult({ name: res.data.data.name, found_id: searchId, birthdate: res.data.data.birthdata, });
       } else {
         setSearchResult(null);
-        setErrorMessage('해당 아이디의 사용자를 찾을 수 없습니다.');
+        setErrorMessage(res.data.error?.message||'해당 아이디의 사용자를 찾을 수 없습니다.');
       }
     } catch (error) {
       console.warn('[Request_bar] 검색 오류 →', error);
@@ -134,7 +142,7 @@ const Request_bar: React.FC<RequestBarProps> = ({
     }
 
     try {
-      const payload = { target_user_id: searchResult.found_id };
+      const payload = { target_user_code: searchResult.found_id };
       console.log('[Request_bar] 연동 요청 시 보내는 payload →', payload);
 
       const res = await API.post('/api/people/sharing/request', payload);
@@ -143,16 +151,16 @@ const Request_bar: React.FC<RequestBarProps> = ({
       const serverMsg = res.data.message || '';
 
       // 이미 연동 완료
-      if (serverMsg.includes('이미 연동이 완료된 사용자입니다')) {
-        setErrorMessage(serverMsg);
-        return;
-      }
+      // if (serverMsg.includes('이미 연동이 완료된 사용자입니다')) {
+      //   setErrorMessage(serverMsg);
+      //   return;
+      // }
 
       // 요청 성공
-      if (res.data && res.data.target_user_id != null) {
-        const numericId = Number(res.data.target_user_id);
-        console.log('[Request_bar] 연동 성공 →', { numericId, found_id: searchResult.found_id });
-        setLink(numericId, searchResult.found_id);
+      if (res.data.success) {
+        //numericId 대신 임시값 사용(target_user_id가 응답에서 제외됨
+        console.log('[Request_bar] 연동 성공 →', { message: serverMsg, found_id: searchResult.found_id });
+        setLink(-1, searchResult.found_id);
         onLinkStatus(true);
         setConnectedUser(searchResult.found_id);
         setNotification(`${searchResult.found_id}님에게 연동 요청을 보냈습니다.`);
@@ -161,10 +169,10 @@ const Request_bar: React.FC<RequestBarProps> = ({
       }
 
       // 예기치 않은 형식
-      setErrorMessage(serverMsg || '서버 응답을 확인할 수 없습니다.');
+      setErrorMessage(res.data.error?.message || '서버 응답을 확인할 수 없습니다.');
       onLinkStatus(false);
     } catch (error: any) {
-      const msg = error.response?.data?.message;
+      const msg = error.response?.data?.error?.message; //에러메세지 접근 경로 수정
       if (msg && msg.includes('이미 연동 요청을 보냈습니다')) {
         setErrorMessage(msg);
       } else {
@@ -220,7 +228,8 @@ const Request_bar: React.FC<RequestBarProps> = ({
         {searchResult && !connectedUser && (
           <View style={styles.resultSection}>
             <Text style={styles.resultText}>이름: {searchResult.name}</Text>
-            <Text style={styles.resultText}>아이디: {searchResult.found_id}</Text>
+            {/* <Text style={styles.resultText}>아이디: {searchResult.found_id}</Text> */}
+            <Text style={styles.resultText}>생년월일: {searchResult.birthdate}</Text>
             <View style={styles.actionButtonsRow}>
               <View style={styles.spacer} />
               <TouchableOpacity style={styles.linkButton} onPress={handleLink}>

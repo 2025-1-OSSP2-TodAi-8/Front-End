@@ -40,7 +40,7 @@ type FavoritesScreenProps = {
 };
 
 const FavoritesScreen: React.FC<FavoritesScreenProps> = ({ navigation, setUserToken,setUserType}) => {
-  const [year, setYear] = useState<number>(2025);
+  const [year, setYear] = useState<number>(new Date().getFullYear());
   const [emotionMap, setEmotionMap] = useState<{ [key: string]: string[] }>({});
   const [menuVisible, setMenuVisible] = useState<boolean>(false);
 
@@ -62,19 +62,18 @@ const FavoritesScreen: React.FC<FavoritesScreenProps> = ({ navigation, setUserTo
         }
 
         const res = await fetch(
-          'http://121.189.72.83:8888/api/diary/marked_year',
+          `https://port-0-back-end-ma5ak09e7076228d.sel4.cloudtype.app/api/diary/get_emotion_year/marked/${year}`,
           {
-            method: 'POST',
+            method: 'GET',
             headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${token}`, 
             },
-            body: JSON.stringify({ year }),
           }
         );
         const json = await res.json();
         const rawEmotionList: { date: string; emotion: string }[] =
-          Array.isArray(json.emotions) ? json.emotions : [];
+          Array.isArray(json.data) ? json.data : [];
 
         const monthlyMap = getMonthlyEmotionMap(rawEmotionList);
         setEmotionMap(monthlyMap);

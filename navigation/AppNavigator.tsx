@@ -26,6 +26,7 @@ import MainScreen_G from '../components/Gaurdian/Month_Screen/MainScreen_G';
 import GuardianFirst from '../components/Gaurdian/guardian_first';
 import DiaryAndAnalyzeScreen_G from '../components/Gaurdian/DiaryAndAnalyze_G/DiaryAndAnalyzeScreen_G';
 import AlertScreen from '../components/Gaurdian/AlertScreen';
+import ReceiveMessage from '../components/Mypage/ReceiveMessage';
 
 export type RootStackParamList = {
   // 로그인 전
@@ -48,6 +49,7 @@ export type RootStackParamList = {
   MonthDetail: { year: number; month: number };
   Conversation: { date: string } | undefined;
   Mypage: undefined;
+  ReceiveMessage: {message: { sender: string; content: string; date: string }};
 
   // 로그인 후 (보호자 전용)
   DashBoard_Main:undefined;
@@ -170,6 +172,9 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({
                     options={{ headerShown: false }}
                   />
             {<Stack.Screen name="AlertScreen" component={AlertScreen} /> }
+            <Stack.Screen name="ReceiveMessage">
+              {props => <ReceiveMessage {...props} setUserToken={setUserToken} setUserType={setUserType}/>}
+            </Stack.Screen>
 
           </>
         ) : (
