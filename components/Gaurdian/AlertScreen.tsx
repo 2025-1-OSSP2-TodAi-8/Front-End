@@ -66,7 +66,7 @@ export default function AlertScreen() {
     try {
       const token = await AsyncStorage.getItem('accessToken');
       const response = await API.post(
-        '/api/people/sharing/accept',
+        '/api/people/sharing/handle',
         { sharingId, action }, // camelCase
         { headers: { Authorization: `Bearer ${token}` } }
       );

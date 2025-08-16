@@ -24,12 +24,12 @@ const Mypage: React.FC<{ navigation: any; setUserToken: (token: string | null) =
   setUserToken,
   setUserType
 }) => {
-  const [Range, setRange] = useState<Record<number, ShowRange>>({});
+  const [Range, setRange] = useState<Record<string, ShowRange>>({});
   const [userInfo, setUserInfo] = useState<null | {
     userId: number;
     name: string;
     sharing: Array<{
-      protectorId: number;
+      protectorId: string;
       protectorName: string;
       showRange: ShowRange;
     }>;
@@ -45,7 +45,7 @@ const Mypage: React.FC<{ navigation: any; setUserToken: (token: string | null) =
 
   useEffect(() => {
     if (userInfo?.sharing?.length) {
-      const initial: Record<number, ShowRange> = {};
+      const initial: Record<string, ShowRange> = {};
       userInfo.sharing.forEach((item) => {
         initial[item.protectorId] = item.showRange;
       });
@@ -53,14 +53,14 @@ const Mypage: React.FC<{ navigation: any; setUserToken: (token: string | null) =
     }
   }, [userInfo]);
 
-  const handleRange = (protectorId: number, newRange: ShowRange) => {
+  const handleRange = (protectorId: string, newRange: ShowRange) => {
     setRange((prev) => ({
       ...prev,
       [protectorId]: newRange,
     }));
   };
 
-  const saveRange = async (protectorId: number) => {
+  const saveRange = async (protectorId: string) => {
     const selected = Range[protectorId];
     if (!selected) return;
 
@@ -70,7 +70,7 @@ const Mypage: React.FC<{ navigation: any; setUserToken: (token: string | null) =
         '/api/people/update/showrange',
         {
           guardianId: protectorId,
-          showRange: selected,
+          showRange: selected.toUpperCase(),
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
