@@ -93,58 +93,56 @@ const MainScreen_G: React.FC<{
         }));
         setEmotionData(enriched);
         console.log('[감정 데이터 확인]', enriched);
-
-        // 🔁 최근 날짜 기준으로 연속 부정 감정이 4일 이상일 때 메시지 출력
-      const negativeEmotions = ['슬픔', '화남', '혐오'];
-
-      // 날짜만 추출하고 오늘 이전의 것만 필터
-      const filteredDates = enriched
-        .filter((e: { emotion: string }) => negativeEmotions.includes(e.emotion))
-        .map((e: { date: string }) => new Date(e.date))
-        .filter((d: Date) => d.getTime() <= new Date().setHours(0, 0, 0, 0))
-        .sort((a: Date, b: Date) => a.getTime() - b.getTime());
-
-      let count = 1;
-      let start = null;
-      let end = null;
-
-      for (let i = 1; i < filteredDates.length; i++) {
-        const diff = filteredDates[i].getTime() - filteredDates[i - 1].getTime();
-        if (diff === 86400000) {
-          count++;
-          if (count === 2) {start = filteredDates[i - 1];}
-          end = filteredDates[i];
-        } else {
-          if (count >= 4) {break;}
-          count = 0;
-          start = null;
-          end = null;
+      
+        // ✅ 기본 문구 한 번만 설정
+        let summary = '특별한 감정 변화가 나타나지 않습니다.';
+      
+        // 🔁 연속 부정 감정(슬픔/화남/혐오) 4일 이상 체크
+        const negativeEmotions = ['슬픔', '화남', '혐오'];
+        const filteredDates = enriched
+          .filter((e: { emotion: string }) => negativeEmotions.includes(e.emotion))
+          .map((e: { date: string }) => new Date(e.date))
+          .filter((d: Date) => d.getTime() <= new Date().setHours(0, 0, 0, 0))
+          .sort((a: Date, b: Date) => a.getTime() - b.getTime());
+      
+        let count = 1;
+        let start: Date | null = null;
+        let end: Date | null = null;
+      
+        for (let i = 1; i < filteredDates.length; i++) {
+          const diff = filteredDates[i].getTime() - filteredDates[i - 1].getTime();
+          if (diff === 86400000) {
+            count++;
+            if (count === 2) start = filteredDates[i - 1];
+            end = filteredDates[i];
+          } else {
+            if (count >= 4) break;
+            count = 1;           // ✅ 새 구간 시작이므로 1로 리셋
+            start = null;
+            end = null;
+          }
         }
-      }
-
-// ✅ 마지막까지 루프 돌았는데 연속 감정이 계속된 경우 처리
-if (count >= 4 && start && end) {
-  const format = (d: Date) => `${d.getMonth() + 1}월 ${d.getDate()}일`;
-  const today = new Date();
-  const isEndToday =
-    end.getFullYear() === today.getFullYear() &&
-    end.getMonth() === today.getMonth() &&
-    end.getDate() === today.getDate();
-
-  if (isEndToday) {
-    setSummaryMessage(`${format(start)}부터 오늘까지\n부정적인 감정이 기록되었습니다.`);
-  } else {
-    const duration = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
-    setSummaryMessage(`${format(start)}부터 ${format(end)}까지\n${duration}일간 부정적 감정이 기록되었습니다.`);
-  }
-} else {
-  setSummaryMessage('특별한 감정 변화가 나타나지 않습니다.');
-}
-
+      
+        // ✅ 마지막까지 연속이면 반영
+        if (count >= 4 && start && end) {
+          const format = (d: Date) => `${d.getMonth() + 1}월 ${d.getDate()}일`;
+          const today = new Date();
+          const isEndToday =
+            end.getFullYear() === today.getFullYear() &&
+            end.getMonth() === today.getMonth() &&
+            end.getDate() === today.getDate();
+      
+          summary = isEndToday
+            ? `${format(start)}부터 오늘까지\n부정적인 감정이 기록되었습니다.`
+            : `${format(start)}부터 ${format(end)}까지\n${Math.round((end.getTime() - start.getTime()) / 86400000) + 1}일간 부정적 감정이 기록되었습니다.`;
+        }
+      
+        setSummaryMessage(summary); // ✅ 최종 한 번만 세팅
       } else {
         setEmotionData([]);
         setSummaryMessage('특별한 감정 변화가 나타나지 않습니다.');
       }
+      
     } catch (error: any) {
       if (error.response?.status === 403) {
         setEmotionData([]);

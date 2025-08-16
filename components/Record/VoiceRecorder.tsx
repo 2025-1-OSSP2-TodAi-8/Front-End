@@ -1,11 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { PermissionsAndroid, Platform } from 'react-native';
-import AudioRecorderPlayer from 'react-native-audio-recorder-player';
-import RNFS from 'react-native-fs';
+import AudioRecord from 'react-native-audio-record';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SoundLevel from 'react-native-sound-level';
-
-const audioRecorderPlayer = new AudioRecorderPlayer();
+import API from '../../api/axios';
 
 interface AudioRecorderProps {
   start: boolean;
@@ -15,129 +13,114 @@ interface AudioRecorderProps {
     summary: string;
     message?: string;
   }) => void;
-  // (선택) 파형 그릴 컴포넌트를 위해 데시벨 값 전달
   onVolumeChange?: (db: number) => void;
 }
+
+const MIN_DURATION_MS = 2000;
 
 const AudioRecorder: React.FC<AudioRecorderProps> = ({ start, onResult, onVolumeChange }) => {
   const [recording, setRecording] = useState(false);
   const [recordedFile, setRecordedFile] = useState<string | null>(null);
+  const [currFileName, setCurrFileName] = useState<string | null>(null);
+  const startedAtRef = useRef<number | null>(null);
 
   const requestPermissions = async () => {
     if (Platform.OS === 'android') {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-        {
-          title: '마이크 권한',
-          message: '음성 녹음을 위해 권한이 필요합니다.',
-          buttonPositive: '허용',
-        },
+        { title: '마이크 권한', message: '음성 녹음을 위해 권한이 필요합니다.', buttonPositive: '허용' }
       );
       return granted === PermissionsAndroid.RESULTS.GRANTED;
     }
     return true;
   };
 
-  const startRecording = async () => {
-    const granted = await requestPermissions();
-    if (!granted) return;
-
+  const makeDateName = () => {
     const now = new Date();
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-    const formattedTime = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
-    const fileName = `recording-${formattedDate}_${formattedTime}.mp4`;
+    const p = (n: number) => n.toString().padStart(2, '0');
+    const date = `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
+    const time = `${p(now.getHours())}-${p(now.getMinutes())}-${p(now.getSeconds())}`;
+    return `recording-${date}_${time}.wav`;
+  };
 
-    const filePath = `${RNFS.CachesDirectoryPath}/${fileName}`;
-
-    const uri = await audioRecorderPlayer.startRecorder(filePath);
+  const startRecording = async () => {
+    const ok = await requestPermissions();
+    if (!ok) return;
+    const wavFile = makeDateName();
+    setCurrFileName(wavFile);
+    AudioRecord.init({ sampleRate: 16000, channels: 1, bitsPerSample: 16, audioSource: 6, wavFile });
+    console.log('녹음 시작 파일명:', wavFile);
+    await AudioRecord.start();
+    startedAtRef.current = Date.now();
     setRecording(true);
-    setRecordedFile(uri);
-    console.log('녹음 시작됨:', uri);
-
-    // 데시벨 측정 시작
+    setRecordedFile(null);
     SoundLevel.start();
     SoundLevel.onNewFrame = (data) => {
-      // volume 값은 보통 -160 ~ 0 (dB) 사이
-      console.log('데시벨:', data.value);
       if (onVolumeChange) onVolumeChange(data.value);
     };
   };
 
   const stopRecording = async () => {
-    const result = await audioRecorderPlayer.stopRecorder();
+    const path = await AudioRecord.stop();
     setRecording(false);
-    setRecordedFile(result);
-    console.log('녹음 저장됨:', result);
-
-    // 데시벨 측정 종료
+    setRecordedFile(path);
     SoundLevel.stop();
-
-    // 🔧 테스트용: 서버 업로드 잠깐 주석 처리
-    // await uploadRecording(result);
-
-    // 테스트 응답 전달
-    onResult({
-      success: 1,
-      emotion: [1, 2, 3, 4, 5, 6, 7],
-      summary: '테스트 요약입니다.',
-    });
-  };
-
-  /*
-  const uploadRecording = async (filePath: string) => {
-    if (!filePath) return;
-    const token = await AsyncStorage.getItem('accessToken');
-    if (!token) {
-      console.warn('No user token found. Cannot upload recording.');
+    SoundLevel.onNewFrame = undefined as any;
+    console.log('녹음 저장 경로(WAV):', path);
+    const dur = startedAtRef.current ? Date.now() - startedAtRef.current : 0;
+    console.log('녹음 길이(ms):', dur);
+    startedAtRef.current = null;
+    if (dur < MIN_DURATION_MS) {
+      onResult({ success: 2, emotion: [], summary: '', message: 'short' });
       return;
     }
+    await uploadRecording(path);
+  };
 
-    const now = new Date();
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-    const formattedTime = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
-    const fileName = `recording-${formattedDate}_${formattedTime}.mp4`;
+  const uploadRecording = async (filePath: string) => {
+    const token = await AsyncStorage.getItem('accessToken');
+    const uri = Platform.OS === 'android' && !filePath.startsWith('file://') ? `file://${filePath}` : filePath;
+    const name = currFileName || filePath.split('/').pop() || makeDateName();
 
-    const data = new FormData();
-    data.append('date', formattedDate);
-    data.append('audio', {
-      uri: filePath,
-      type: 'audio/mp4',
-      name: fileName,
-    } as any);
+    const form = new FormData();
+    form.append('audio', { uri, type: 'audio/wav', name } as any);
+
+    const base = (API as any)?.defaults?.baseURL || '';
+    const url = '/api/diary/analyze';
+    console.log('POST', base + url);
+    console.log('업로드 파일 정보:', { name, type: 'audio/wav', uri });
 
     try {
-      const response = await fetch('http://121.189.72.83:8888/api/diary/record', {
-        method: 'POST',
+      const res = await API.post(url, form, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: data,
       });
-
-      const resultJson = await response.json();
-      console.log('서버 응답:', resultJson);
-      onResult(resultJson);
-    } catch (error) {
-      console.error('업로드 실패:', error);
-      onResult({
-        success: 0,
-        emotion: [0, 0, 0, 0, 0, 0, 0],
-        summary: '',
-        message: '서버 업로드 중 오류가 발생했습니다.',
-      });
+      console.log('업로드 완료 상태:', res.status);
+      const json = res.data || {};
+      onResult({ success: 1, emotion: json.emotion_analysis ?? [], summary: json.summary ?? '' });
+    } catch (e: any) {
+      const status = e?.response?.status;
+      const msg =
+        status === 404
+          ? '요청 경로가 없습니다 (404)'
+          : status
+          ? `업로드 실패 (${status})`
+          : '네트워크 오류';
+      console.log('업로드 실패:', msg);
+      onResult({ success: 0, emotion: [], summary: '', message: msg });
     }
   };
-  */
 
   useEffect(() => {
-    if (start && !recording) {
-      startRecording();
-    } else if (!start && recording) {
-      stopRecording();
-    }
+    if (start && !recording) startRecording();
+    else if (!start && recording) stopRecording();
+    return () => {
+      try { if (recording) AudioRecord.stop(); } catch {}
+      SoundLevel.stop();
+      SoundLevel.onNewFrame = undefined as any;
+    };
   }, [start]);
 
   return null;
