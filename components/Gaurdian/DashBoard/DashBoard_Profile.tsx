@@ -10,7 +10,6 @@ import {
 
 export interface UserProfile {
     name:string;
-    emotion : string;
     userId : string;
     email : string;
     birth:string;
@@ -37,7 +36,7 @@ const DashBoard_Profile: React.FC<Props> = ({ user }) => {
       <SafeAreaView style={styles.box}>
         <View style={styles.centerSection}>
             <Text style ={styles.title}>프로필</Text>
-            <Image source ={emotionImageMap[user.emotion]} style={styles.emotion}/>
+              <Image source={emotionImageMap['평범']} style={styles.emotion} />
             <Text style={styles.name}>{user.name}</Text>
         </View>
         <Text style={styles.info}>

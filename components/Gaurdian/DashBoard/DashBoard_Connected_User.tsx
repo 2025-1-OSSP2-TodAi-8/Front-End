@@ -63,102 +63,112 @@ const DashBoard_Connected_User: React.FC<Props> = ({ connectedUsers }) => {
         setBoxWidth(width);
       }}
     >
-      <Text style={styles.title}>연동된 사용자</Text>
+      <View style={styles.titleWrapper}>
+        <Text style={styles.title}>연동된 사용자</Text>
+      </View>
 
-      {boxWidth && (
-        connectedUsers.length === 0 ? (
-            <View style={{ alignItems: 'center', marginTop: 20 }}>
-            <Text style={{ fontSize: 12, color: '#666' }}>
-                연동된 사용자가 없습니다.
-            </Text>
+      <View style={styles.contentArea}>
+        {boxWidth && (
+          connectedUsers.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>연동된 사용자가 없습니다.</Text>
             </View>
-        ) : (
+          ) : (
             <>
-            <View style={styles.sliderContainer}>
+              <View style={styles.sliderContainer}>
                 <ScrollView
-                ref={scrollRef}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onScroll={handleScroll}
-                scrollEventThrottle={16}
-                contentContainerStyle={styles.scrollContainer}
+                  ref={scrollRef}
+                  horizontal
+                  pagingEnabled
+                  showsHorizontalScrollIndicator={false}
+                  onScroll={handleScroll}
+                  scrollEventThrottle={16}
+                  contentContainerStyle={styles.scrollContainer}
                 >
-                {connectedUsers.map((user, index) => {
+                  {connectedUsers.map((user, index) => {
                     const isSelected = selectedIndex === index;
                     return (
-                    <TouchableOpacity
+                      <TouchableOpacity
                         key={index}
                         activeOpacity={0.9}
                         onPress={() => {
-                        setSelectedIndex(index);
-                        setActiveIndex(index);
-                        scrollRef.current?.scrollTo({
+                          setSelectedIndex(index);
+                          setActiveIndex(index);
+                          scrollRef.current?.scrollTo({
                             x: boxWidth * index,
                             animated: true,
-                        });
+                          });
                         }}
-                    >
+                      >
                         <View
-                        style={[
+                          style={[
                             styles.card,
                             {
-                            width: boxWidth * 0.6,
-                            height: boxWidth * 0.55,
-                            transform: [{ scale: isSelected ? 1.02 : 1 }],
-                            elevation: isSelected ? 4 : 2,
-                            backgroundColor: isSelected ? "#D9A9FF" : "#E4B3FF",
+                              width: boxWidth * 0.6,
+                              height: boxWidth * 0.55,
+                              transform: [{ scale: isSelected ? 1.02 : 1 }],
+                              elevation: isSelected ? 4 : 2,
+                              backgroundColor: isSelected ? "#D9A9FF" : "#E4B3FF",
                             },
-                        ]}
+                          ]}
                         >
-                        <View style={styles.Container}>
+                          <View style={styles.Container}>
                             <Image
-                            source={emotionImageMap[user.Significant_emotion ?? "평범"]}
-                            style={styles.emotionImage}
+                              source={
+                                emotionImageMap[user.Significant_emotion ?? "평범"]
+                              }
+                              style={styles.emotionImage}
                             />
                             <View>
-                            <Text style={styles.userName}>{user.userName}</Text>
-                            <Text style={styles.scope}>공개범위: {user.connectScope}</Text>
+                              <Text style={styles.userName}>{user.userName}</Text>
+                              <Text style={styles.scope}>
+                                공개범위: {user.connectScope}
+                              </Text>
                             </View>
-                        </View>
+                          </View>
 
-                        <View style={styles.noteBox}>
+                          <View style={styles.noteBox}>
                             <Text style={styles.noteTitle}>특이사항</Text>
                             <Text style={styles.noteText}>
-                            {getSpecialNote(user.Significant_emotion, user.Significant_date)}
+                              {getSpecialNote(
+                                user.Significant_emotion,
+                                user.Significant_date
+                              )}
                             </Text>
+                          </View>
                         </View>
-                        </View>
-                    </TouchableOpacity>
+                      </TouchableOpacity>
                     );
-                })}
+                  })}
                 </ScrollView>
-            </View>
+              </View>
 
-            <View style={styles.dotsContainer}>
+              <View style={styles.dotsContainer}>
                 {connectedUsers.map((_, index) => (
-                <TouchableOpacity
+                  <TouchableOpacity
                     key={index}
                     onPress={() => {
-                    scrollRef.current?.scrollTo({
+                      scrollRef.current?.scrollTo({
                         x: boxWidth * index,
                         animated: true,
-                    });
-                    setActiveIndex(index);
-                    setSelectedIndex(index);
+                      });
+                      setActiveIndex(index);
+                      setSelectedIndex(index);
                     }}
-                >
-                    <View style={[
-                    styles.dot,
-                    activeIndex === index && styles.activeDot,
-                    ]} />
-                </TouchableOpacity>
+                  >
+                    <View
+                      style={[
+                        styles.dot,
+                        activeIndex === index && styles.activeDot,
+                      ]}
+                    />
+                  </TouchableOpacity>
                 ))}
-            </View>
+              </View>
             </>
-        )
+          )
         )}
-
+      </View>
     </SafeAreaView>
   );
 };
@@ -170,8 +180,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
     borderRadius: 20,
     backgroundColor: "#fff",
-    paddingLeft: 16,
-    paddingRight: 16,
+    paddingHorizontal: 16,
     aspectRatio: 1.28,
     shadowColor: "#000",
     shadowOpacity: 0.1,
@@ -179,29 +188,44 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 5,
     alignItems: "center",
-    justifyContent: "center",
+  },
+  titleWrapper: {
+    marginTop: 15,
+    width: '100%',
+    paddingHorizontal: 10,
   },
   title: {
     color: "#531EA3",
     fontSize: 15,
     fontWeight: "800",
     textAlign: "left",
-    alignSelf: "flex-start",
-    paddingLeft: 10,
-    marginTop: 5,
-    marginBottom: 225,
+  },
+  contentArea: {
+    flex: 1,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: 30,
+    flex: 1,
+  },
+  emptyText: {
+    fontSize: 12,
+    color: '#666',
   },
   sliderContainer: {
-    position: "absolute",
-    top: 23,
-    bottom: 10,
-    left: 0,
-    right: 0,
-    justifyContent: "center",
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+    paddingBottom:20,
   },
   scrollContainer: {
     alignItems: "center",
-    paddingHorizontal: 10,
+    paddingHorizontal: 5,
   },
   card: {
     borderRadius: 20,

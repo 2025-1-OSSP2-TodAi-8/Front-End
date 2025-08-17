@@ -13,8 +13,8 @@ import API from "../../../api/axios";
 
 // UI에서 사용하는 검색 결과 타입(부모와 키 통일)
 export interface Search_User {
-  userName: string;
-  userBirth: string;
+  name: string;
+  birthdate: string;
 }
 
 interface Props {
@@ -76,11 +76,11 @@ const DashBoard_Connect: React.FC<Props> = ({ user, setConnectUser, searchText }
             </Text>
             <Text style={styles.info}>
               <Text style={styles.label}>닉네임: </Text>
-              {user.userName}
+              {user.name}
             </Text>
             <Text style={styles.info}>
               <Text style={styles.label}>생년월일: </Text>
-              {user.userBirth}
+              {user.birthdate}
             </Text>
             <TouchableOpacity style={styles.button} onPress={handleConnectRequest}>
               <Text style={styles.buttonText}>연동요청</Text>

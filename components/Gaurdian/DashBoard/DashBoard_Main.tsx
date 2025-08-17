@@ -21,7 +21,7 @@ interface Props {
 const { width } = Dimensions.get('window');
 
 /** 🔧 데모/실서버 전환 스위치 */
-const DEMO_MODE = true;
+const DEMO_MODE = false;
 
 /** 🔧 실제 서버 URL은 여기에서만 바꾸면 됩니다 */
 const ALERT_API_URL = '/api/people/my';
@@ -49,6 +49,8 @@ const DashBoard_Main: React.FC<Props> = ({ setUserToken, setUserType }) => {
         });
         const data = response.data?.data ?? response.data;
 
+        console.log('📬 알림 응답:', response.data);
+
         // 필요 시 응답 구조에 맞게 매핑
         const first = Array.isArray(data?.notification) ? data.notification[0] : null;
         if (first?.protectorName && first?.status) {
@@ -63,6 +65,7 @@ const DashBoard_Main: React.FC<Props> = ({ setUserToken, setUserType }) => {
         setAlertUsername(null);
         setAlertState(null);
       }
+      
     };
 
     fetchAlert();
@@ -76,7 +79,6 @@ const DashBoard_Main: React.FC<Props> = ({ setUserToken, setUserType }) => {
       // 🎭 데모 데이터 (UserProfile 타입에 맞춰주세요)
       const demoProfile: UserProfile = {
         name: '김동국',
-        emotion: '행복',
         userId: 'dongguk08',
         email: 'dongguk08@dgu.ac.kr',
         birth: '2000-01-01',
@@ -91,6 +93,8 @@ const DashBoard_Main: React.FC<Props> = ({ setUserToken, setUserType }) => {
         const response = await API.get(PROFILE_API_URL, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        console.log('👤 프로필 응답:', response.data);
+
         // 필요 시 응답에서 프로필 키를 골라서 매핑
         setUserProfile(response.data?.data ?? response.data);
       } catch (error) {
@@ -106,44 +110,32 @@ const DashBoard_Main: React.FC<Props> = ({ setUserToken, setUserType }) => {
   const [searchText, setSearchText] = useState('');
   const [connectUser, setConnectUser] = useState<Search_User | null>(null);
 
-  useEffect(() => {
-    if (DEMO_MODE) {
-      // 🎭 데모 데이터
-      setSearchText('U123456');
-      // Search_User 타입에 맞게 필드만 넣으세요
-      const demoUser: Search_User = {
-        userName: '하린',
-        userBirth: '2003-02-14',
-      } as Search_User;
-      setConnectUser(demoUser);
+  const handleSearch = async (text: string) => {
+    setSearchText(text); // ✅ 여기에 추가!
+    
+    if (!text) {
+      setConnectUser(null);
       return;
     }
+    try {
+      const response = await API.post(`/api/people/search/`, {
+        target_user_code: text,
+      });
+      console.log('🔍 검색 응답:', response.data);
 
-    const fetchSearchedUser = async () => {
-      if (!searchText) {
-        setConnectUser(null);
-        return;
-      }
-      try {
-        const response = await API.post(`/api/people/search/`, {
-          target_user_code: searchText,
-        });
-
-        // 서버 응답 형태에 맞춰 파싱
-        const data = response.data?.data ?? response.data;
-        if (data && data.userName && data.userBirth) {
-          setConnectUser({ userName: data.userName, userBirth: data.userBirth } as Search_User);
-        } else {
-          setConnectUser(null);
-        }
-      } catch (error) {
-        console.error('검색 실패:', error);
+      const data = response.data?.data ?? response.data;
+      if (data && data.userName && data.userBirth) {
+        setConnectUser({ name: data.name, birthdate: data.birthdate } as Search_User);
+      } else {
         setConnectUser(null);
       }
-    };
+    } catch (error) {
+      console.error('검색 실패:', error);
+      setConnectUser(null);
+    }
+  };
 
-    fetchSearchedUser();
-  }, [searchText]);
+  
 
   // 연동된 사용자(실데이터)
   const [connectedUsers, setConnectedUsers] = useState<Connect_User_Info[]>([]);
@@ -166,6 +158,7 @@ const DashBoard_Main: React.FC<Props> = ({ setUserToken, setUserType }) => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = response.data?.data ?? response.data;
+        console.log('🔗 연동된 사용자 응답:', response.data);
 
         if (Array.isArray(data)) {
           setConnectedUsers(data);
@@ -193,7 +186,7 @@ const DashBoard_Main: React.FC<Props> = ({ setUserToken, setUserType }) => {
       </View>
 
       <View style={styles.Container2}>
-        <DashBoard_Search onSearch={setSearchText} />
+        <DashBoard_Search onSearch={handleSearch} />
       </View>
 
       <View style={styles.Container3}>

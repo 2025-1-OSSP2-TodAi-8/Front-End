@@ -1,11 +1,9 @@
 import React ,{useState} from "react";
-import { View, StyleSheet, SafeAreaView, TextInput, Dimensions,Image } from 'react-native';
+import { View, StyleSheet, SafeAreaView, TextInput, TouchableOpacity,Image } from 'react-native';
 
 interface Props {
   onSearch: (text: string) => void;
 }
-
-
 
 const DashBoard_Search: React.FC<Props> = ({ onSearch }) => {
   const [inputText, setInputText] = useState('');
@@ -13,20 +11,23 @@ const DashBoard_Search: React.FC<Props> = ({ onSearch }) => {
   return (
     <SafeAreaView style={styles.box}>
     <View style={styles.row}>
-        <Image
+    <TouchableOpacity onPress={() => onSearch(inputText)}>
+      <Image
         source={require('../../../assets/images/Search_Purple.png')}
         style={styles.icon}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="사용자를 검색하세요"
-          placeholderTextColor="gray"
-          value={inputText}
-          onChangeText={setInputText}
-          onSubmitEditing={() => onSearch(inputText)} // ✅ 엔터 시 검색 실행
-          returnKeyType="search" // 키보드에서 '검색' 버튼으로 보이게
-        />
-    </View>
+      />
+    </TouchableOpacity>
+
+    <TextInput
+      style={styles.input}
+      placeholder="사용자 코드를 검색하세요"
+      placeholderTextColor="gray"
+      value={inputText}
+      onChangeText={setInputText}
+      returnKeyType="search"
+    />
+  </View>
+
     </SafeAreaView>
 
   );
