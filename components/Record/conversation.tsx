@@ -184,7 +184,11 @@ const Conversation: React.FC<Props> = ({ setUserToken, setUserType }) => {
               </Text>
 
               <TouchableOpacity
-                onPress={() => setTimeout(beginRecording, 150)}
+                onPress={() => {
+                  setShowOverlay(false);
+                  resetRecordingState();
+                  setTimeout(beginRecording);
+                }}
                 style={styles.redoButton}
               >
                 <Text style={styles.redoButtonText}>다시 녹음하기</Text>
