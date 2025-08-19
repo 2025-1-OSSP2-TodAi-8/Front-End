@@ -16,7 +16,6 @@ import {
   Dimensions,
 } from 'react-native';
 import API from '../../../api/axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // React Navigation 훅·타입
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -35,64 +34,61 @@ type AnalyzeRouteProp = RouteProp<RootStackParamList, 'DiaryAnalyze_G'>;
 type AnalyzeNavProp = NativeStackNavigationProp<RootStackParamList, 'DiaryAnalyze_G'>;
 
 // 일별 조회용 API 엔드포인트 (baseURL은 API 인스턴스에 설정되어 있습니다)
-const EMOTION_DAY_PATH = '/api/people/share/day';
+const EMOTION_DAY_PATH = '/api/people/sharing';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const EMOTION_DAY_STATE = {
+  emotion: '', 
+  emotion_rate: [0, 0, 0, 0, 0, 0, 0], 
+  summary: '', 
+}
 
 const DiaryAndAnalyzeScreen_G: React.FC = () => {
   const navigation = useNavigation<AnalyzeNavProp>();
   const route = useRoute<AnalyzeRouteProp>();
 
-  const { date: initialDate, target_user_id } = route.params;
+  const { date: initialDate, userCode } = route.params;
 
   const [showChart, setShowChart] = useState<boolean>(false);
   const [currentDate, setCurrentDate] = useState<string>(initialDate);
-  const [todayEmotion, setTodayEmotion] = useState<{
-    emotion: string;
-    emotion_rate: number[];
-    summary: string;
-  } | null>(null);
+  const [todayEmotion, setTodayEmotion] = useState<typeof EMOTION_DAY_STATE | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const fetchOneDayEmotion = async (year: number, month: number, day: number) => {
     try {
+      const monthStr = String(month).padStart(2, '0');
+      const dayStr = String(day).padStart(2, '0');
+      const requestUrl = `${EMOTION_DAY_PATH}/${year}-${monthStr}-${dayStr}`;
       const payload = {
-        user_id: target_user_id,
-        year,
-        month,
-        day,
+        targetId: userCode,
       };
       console.log('[DiaryAnalyze_G] 일별 감정 조회 요청 payload →', payload);
-      const response = await API.post(EMOTION_DAY_PATH, payload);
+      const response = await API.post(requestUrl, payload);
 
       console.log('[DiaryAnalyze_G] 서버 응답 데이터 →', response.data);
 
-      if (response.status === 200 && response.data) {
-        if (response.data.message && response.data.message.includes('비공개')) {
-          return { error: '접근할 수 없는 페이지입니다.' };
+      if(response.status === 200 && response.data.success) {
+        const data = response.data.data;
+        if(response.data.message || !data) {
+          return EMOTION_DAY_STATE;
         }
-
-        const data = response.data;
         return {
           emotion: data.emotion || '',
-          emotion_rate: Array.isArray(data.emotion_rate)
-            ? data.emotion_rate
-            : [0, 0, 0, 0, 0, 0, 0],
-          summary: data.summary ?? '',
+          emotion_rate: Array.isArray(data.emotionRate) ? data.emotionRate : EMOTION_DAY_STATE.emotion_rate,
+          summary: data.summary??'', 
         };
       }
 
-      return { error: '데이터를 불러올 수 없습니다.' };
+      return EMOTION_DAY_STATE; 
     } catch (err: any) {
       if (err.response?.status === 404) {
-        // ✅ 404도 데이터 없음으로 처리
-        return {
-          emotion: '',
-          emotion_rate: [0, 0, 0, 0, 0, 0, 0],
-          summary: '',
-        };
+       return EMOTION_DAY_STATE;
       }
+      console.error("API Error: ", err);
+      return {
+        error: '데이터 조회 중 오류가 발생했습니다. '
+      };
     }
   };
 
@@ -107,18 +103,8 @@ const DiaryAndAnalyzeScreen_G: React.FC = () => {
 
     fetchOneDayEmotion(year, month, day)
       .then((result: any) => {
-        if (result && result.error) {
-          setTodayEmotion(null);
-          setErrorMessage(result.error);
-        } else if (result) {
-          setTodayEmotion({
-            emotion: result.emotion,
-            emotion_rate: result.emotion_rate,
-            summary: result.summary,
-          });
-        } else {
-          setTodayEmotion(null);
-          setErrorMessage('데이터를 불러올 수 없습니다.');
+        if (result) {
+          setTodayEmotion(result);
         }
       })
       .finally(() => setLoading(false));
@@ -136,7 +122,13 @@ const DiaryAndAnalyzeScreen_G: React.FC = () => {
   };
 
   const onDatePress = () => {
-    navigation.navigate('MainScreen_G');
+    navigation.navigate('MainScreen_G', {
+      userCode: userCode, 
+    });
+  };
+
+  const handleSendMessage = () =>{
+    navigation.navigate('SendMessage', {userCode: userCode});
   };
 
   const [yStr2, mStr2, dStr2] = currentDate.split('-');
@@ -195,6 +187,12 @@ const DiaryAndAnalyzeScreen_G: React.FC = () => {
             <Text style={styles.emptyText}>데이터가 존재하지 않습니다.</Text>
           </View>
         )}
+      </View>
+
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.messageButton} onPress={handleSendMessage}>
+          <Text style={styles.messageButtonText}>메세지 보내기</Text>
+        </TouchableOpacity>
       </View>
 
       {errorMessage && (
@@ -304,6 +302,27 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
   },
+  buttonContainer: {
+    paddingHorizontal: 20, 
+    paddingVertical: 15, 
+    backgroundColor: '#F5E8FF', 
+    marginBottom: 30, 
+    alignItems: 'center', 
+  }, 
+  messageButton: {
+    backgroundColor: '#C8A2C8', 
+    paddingVertical: 16, 
+    borderRadius: 15, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    width: '80%', 
+  }, 
+  messageButtonText: {
+    color: '#FFFFFF', 
+    fontSize: 16, 
+    fontWeight: 'bold', 
+  }, 
 });
 
 export default DiaryAndAnalyzeScreen_G;
+

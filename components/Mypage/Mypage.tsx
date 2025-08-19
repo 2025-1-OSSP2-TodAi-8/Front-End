@@ -24,12 +24,17 @@ const Mypage: React.FC<{ navigation: any; setUserToken: (token: string | null) =
   setUserToken,
   setUserType
 }) => {
-  const [Range, setRange] = useState<Record<number, ShowRange>>({});
+  const [Range, setRange] = useState<Record<string, ShowRange>>({});
   const [userInfo, setUserInfo] = useState<null | {
-    userId: number;
+    userCode: string;
     name: string;
     sharing: Array<{
-      protectorId: number;
+      protectorId: string;
+      protectorName: string;
+      showRange: ShowRange;
+    }>;
+    notification: Array<{
+      sharingId: string;
       protectorName: string;
       showRange: ShowRange;
     }>;
@@ -39,13 +44,12 @@ const Mypage: React.FC<{ navigation: any; setUserToken: (token: string | null) =
 
   //받은 메세지
   const [receivedMessages, setReceivedMessages]=useState<
-  { sender: String; content: String; date: string } [] >([]);
+  { messageId: string; guardianName: string; isRead: boolean } [] >([]);
 
   // ✅ 로그아웃 핸들러 (MainScreen 구조와 동일)
-
   useEffect(() => {
     if (userInfo?.sharing?.length) {
-      const initial: Record<number, ShowRange> = {};
+      const initial: Record<string, ShowRange> = {};
       userInfo.sharing.forEach((item) => {
         initial[item.protectorId] = item.showRange;
       });
@@ -53,14 +57,14 @@ const Mypage: React.FC<{ navigation: any; setUserToken: (token: string | null) =
     }
   }, [userInfo]);
 
-  const handleRange = (protectorId: number, newRange: ShowRange) => {
+  const handleRange = (protectorId: string, newRange: ShowRange) => {
     setRange((prev) => ({
       ...prev,
       [protectorId]: newRange,
     }));
   };
 
-  const saveRange = async (protectorId: number) => {
+  const saveRange = async (protectorId: string) => {
     const selected = Range[protectorId];
     if (!selected) return;
 
@@ -70,7 +74,7 @@ const Mypage: React.FC<{ navigation: any; setUserToken: (token: string | null) =
         '/api/people/update/showrange',
         {
           guardianId: protectorId,
-          showRange: selected,
+          showRange: selected.toUpperCase(),
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -103,10 +107,12 @@ const Mypage: React.FC<{ navigation: any; setUserToken: (token: string | null) =
     }));
 
     setUserInfo({
-      userId: raw.userCode, 
+      userCode: raw.userCode, 
       name: raw.name, 
       sharing: mappedSharing, 
+      notification: raw.notification || [], 
     }); 
+    setReceivedMessages(raw.messages || []);
   } catch (error) {
     console.log('❌ fetchUser 오류:', error);
     Alert.alert('오류', '마이페이지 정보를 불러오지 못했습니다.');
@@ -114,13 +120,6 @@ const Mypage: React.FC<{ navigation: any; setUserToken: (token: string | null) =
     setLoading(false);
   }
 };
-
-  // 받은 메세지 테스트 -> 나중에 삭제
-  useEffect(() => {
-    setReceivedMessages([
-      { sender: '보호자 A', content: '잘 지내고 있니?', date: '2025-08-10' },
-    ]);
-  }, []);
 
   useEffect(() => {
     fetchUser();
@@ -170,7 +169,7 @@ const Mypage: React.FC<{ navigation: any; setUserToken: (token: string | null) =
 
         <View style={styles.itemBox2}>
           <Text style={styles.name}>이름: {userInfo.name}</Text>
-          <Text style={styles.name}>유저 ID: {userInfo.userId}</Text>
+          <Text style={styles.name}>유저 ID: {userInfo.userCode}</Text>
         </View>
 
         <Text style={styles.sectionTitle}>현재 연동된 보호자</Text>
@@ -223,11 +222,13 @@ const Mypage: React.FC<{ navigation: any; setUserToken: (token: string | null) =
             renderItem={({item})=>(
               <TouchableOpacity 
               style={styles.messageBox}
-              onPress={()=>navigation.navigate('ReceiveMessage', {message: item})}
+              onPress={()=>navigation.navigate('ReceiveMessage', {
+                messageId: item.messageId,
+                sender: item.guardianName,
+              })
+            }
               >
-                <Text style={styles.messageSender}>From. {item.sender}님</Text>
-                <Text style={styles.messageContent}>{item.content}</Text>
-                <Text style={styles.messageDate}>{item.date}</Text>
+                <Text style={styles.messageSender}>From. {item.guardianName}님</Text>
               </TouchableOpacity>
             )}
           contentContainerStyle={{paddingBottom:20}}
