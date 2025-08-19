@@ -8,8 +8,11 @@ import {
   Image,
   TouchableOpacity,
 } from "react-native";
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 export interface Connect_User_Info {
+  userCode : string,
   userName: string;
   connectScope: "partial" | "full";
   Significant_emotion: string | null;
@@ -29,8 +32,19 @@ const emotionImageMap: { [key: string]: any } = {
 interface Props {
   connectedUsers: Connect_User_Info[];
 }
+type RootStackParamList = {
+  MainScreen_G: { userCode: string }; // Main_G 스크린을 네비게이터에 반드시 등록하세요
+  // 필요하다면 다른 스크린 타입도 여기에 추가
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'MainScreen_G'>;
 
 const DashBoard_Connected_User: React.FC<Props> = ({ connectedUsers }) => {
+  const navigation = useNavigation<NavigationProp>();
+  const handleNavigate = (userCode:string) => {
+    navigation.navigate('MainScreen_G',{ userCode });
+  };
+
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [boxWidth, setBoxWidth] = useState<number | null>(null);
@@ -94,12 +108,11 @@ const DashBoard_Connected_User: React.FC<Props> = ({ connectedUsers }) => {
                         onPress={() => {
                           setSelectedIndex(index);
                           setActiveIndex(index);
-                          scrollRef.current?.scrollTo({
-                            x: boxWidth * index,
-                            animated: true,
-                          });
+                          scrollRef.current?.scrollTo({ x: boxWidth! * index, animated: true });
+                          handleNavigate(user.userCode);
                         }}
                       >
+                        
                         <View
                           style={[
                             styles.card,

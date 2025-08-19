@@ -13,13 +13,12 @@ import {
   Image,
 } from 'react-native';
 import API from '../../../api/axios';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../navigation/AppNavigator';
 import YearMonthSelector from './YearMonthSelector_G';
 import CalendarGrid from './CalendarGrid_G';
 import Request_bar from '../Request_bar';
-import { useLink } from '../LinkContext';
 
 const emotionImageMap: { [key: string]: any } = {
   놀람: require('../../../assets/images/surprise.png'),
@@ -30,20 +29,20 @@ const emotionImageMap: { [key: string]: any } = {
   공포: require('../../../assets/images/fear.png'),
 };
 
-type MainNavProp = NativeStackNavigationProp<RootStackParamList, 'Main'>;
+// ✅ 라우트/네비 타입: 라우트 이름은 "Main"
+type MainRouteProp = RouteProp<RootStackParamList, 'MainScreen_G'>;
+type MainNavProp   = NativeStackNavigationProp<RootStackParamList, 'MainScreen_G'>;
 
-type EmotionData = {
-  date: string;
-  emotion: string;
-};
+type EmotionData = { date: string; emotion: string };
 
 const MainScreen_G: React.FC<{
   setUserToken: (token: string | null) => void;
   setUserType: (type: 'user' | 'guardian' | null) => void;
 }> = ({ setUserToken, setUserType }) => {
-
   const navigation = useNavigation<MainNavProp>();
-  const { targetIdNum, targetIdStr, setLink } = useLink();
+  const route = useRoute<MainRouteProp>();
+  const { userCode } = route.params; // 🔹 DashBoard_Connected_User에서 받아온 코드
+
   const [year, setYear] = useState(2025);
   const [month, setMonth] = useState(5);
   const [emotionData, setEmotionData] = useState<EmotionData[]>([]);
@@ -62,7 +61,7 @@ const MainScreen_G: React.FC<{
 
   const handleLogout = useCallback(() => {
     setUserToken(null);
-    setUserType(null);       // ✅ 사용자 타입 초기화 추가
+    setUserType(null);
     setMenuVisible(false);
   }, [setUserToken, setUserType]);
 
@@ -71,44 +70,59 @@ const MainScreen_G: React.FC<{
     setTimeout(() => setNotification(null), 3000);
   };
 
+  // ✅ 월별 감정 조회: userCode를 바디에 포함해서 전송
   const fetchMonthlyEmotions = async () => {
     setLoading(true);
     try {
-      if (!targetIdNum || !targetIdStr) {
-        console.warn('연동된 타깃 ID가 없습니다.');
+      if (!userCode) {
+        console.warn('userCode가 없습니다.');
         setEmotionData([]);
+        setSummaryMessage('특별한 감정 변화가 나타나지 않습니다.');
         return;
       }
+      
 
-      const res = await API.post('/api/people/share/month', {
-        user_id: targetIdNum,
-        year,
-        month,
+      const ym = `${year}-${String(month).padStart(2, '0')}`;
+
+      // ⬇️ 서버가 기대하는 키 이름이 'targetId'가 아니라 'userCode'라면 아래 줄을 바꿔주세요.
+      const res = await API.post(`/api/people/sharing/month/${ym}`, {
+        targetId:userCode, // ← 백엔드 키가 targetId라면 { targetId: userCode }
       });
 
-      if (res.status === 200 && Array.isArray(res.data.emotions)) {
-        const enriched = res.data.emotions.map((e: any) => ({
+      console.log('[REQ/MONTH]', {
+        method: 'POST',
+        url: `/api/people/sharing/month/${ym}`,
+        body: { userCode },
+        baseURL: API.defaults?.baseURL,
+        auth:
+          (API.defaults?.headers as any)?.common?.Authorization
+            ? `present len=${String((API.defaults?.headers as any).common.Authorization).length}`
+            : 'none',
+      });
+
+      const { success, data, error } = res.data || {};
+      const list = Array.isArray(data?.emotionList) ? data.emotionList : [];
+
+      if (res.status === 200 && success && list.length > 0) {
+        const enriched: EmotionData[] = list.map((e: any) => ({
           date: e.date,
           emotion: e.emotion,
         }));
         setEmotionData(enriched);
-        console.log('[감정 데이터 확인]', enriched);
-      
-        // ✅ 기본 문구 한 번만 설정
+
+        // ── 요약 문구 계산(연속 부정 감정 4일 이상) ──
         let summary = '특별한 감정 변화가 나타나지 않습니다.';
-      
-        // 🔁 연속 부정 감정(슬픔/화남/혐오) 4일 이상 체크
         const negativeEmotions = ['슬픔', '화남', '혐오'];
         const filteredDates = enriched
-          .filter((e: { emotion: string }) => negativeEmotions.includes(e.emotion))
-          .map((e: { date: string }) => new Date(e.date))
-          .filter((d: Date) => d.getTime() <= new Date().setHours(0, 0, 0, 0))
-          .sort((a: Date, b: Date) => a.getTime() - b.getTime());
-      
+          .filter((e) => negativeEmotions.includes(e.emotion))
+          .map((e) => new Date(e.date))
+          .filter((d) => d.getTime() <= new Date().setHours(0, 0, 0, 0))
+          .sort((a, b) => a.getTime() - b.getTime());
+
         let count = 1;
         let start: Date | null = null;
         let end: Date | null = null;
-      
+
         for (let i = 1; i < filteredDates.length; i++) {
           const diff = filteredDates[i].getTime() - filteredDates[i - 1].getTime();
           if (diff === 86400000) {
@@ -117,57 +131,53 @@ const MainScreen_G: React.FC<{
             end = filteredDates[i];
           } else {
             if (count >= 4) break;
-            count = 1;           // ✅ 새 구간 시작이므로 1로 리셋
+            count = 1;
             start = null;
             end = null;
           }
         }
-      
-        // ✅ 마지막까지 연속이면 반영
+
         if (count >= 4 && start && end) {
-          const format = (d: Date) => `${d.getMonth() + 1}월 ${d.getDate()}일`;
+          const fmt = (d: Date) => `${d.getMonth() + 1}월 ${d.getDate()}일`;
           const today = new Date();
           const isEndToday =
             end.getFullYear() === today.getFullYear() &&
             end.getMonth() === today.getMonth() &&
             end.getDate() === today.getDate();
-      
+
           summary = isEndToday
-            ? `${format(start)}부터 오늘까지\n부정적인 감정이 기록되었습니다.`
-            : `${format(start)}부터 ${format(end)}까지\n${Math.round((end.getTime() - start.getTime()) / 86400000) + 1}일간 부정적 감정이 기록되었습니다.`;
+            ? `${fmt(start)}부터 오늘까지\n부정적인 감정이 기록되었습니다.`
+            : `${fmt(start)}부터 ${fmt(end)}까지\n${
+                Math.round((end.getTime() - start.getTime()) / 86400000) + 1
+              }일간 부정적 감정이 기록되었습니다.`;
         }
-      
-        setSummaryMessage(summary); // ✅ 최종 한 번만 세팅
+
+        setSummaryMessage(summary);
       } else {
+        console.log('[월단위 응답 요약]', { success, error, count: list.length });
         setEmotionData([]);
         setSummaryMessage('특별한 감정 변화가 나타나지 않습니다.');
       }
-      
     } catch (error: any) {
-      if (error.response?.status === 403) {
-        setEmotionData([]);
-        showTempNotification('아직 대상 사용자가 연동 요청을 수락하지 않았습니다.');
-      } else {
-        console.warn('월별 감정 불러오기 실패:', error);
-        setEmotionData([]);
-      }
+      console.warn('월별 감정 불러오기 실패:', error?.response?.data || error?.message || error);
+      setEmotionData([]);
+      setSummaryMessage('특별한 감정 변화가 나타나지 않습니다.');
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ 연/월 또는 userCode가 바뀌면 자동 재호출
   useEffect(() => {
-    if (targetIdNum !== null && targetIdStr) {
-      fetchMonthlyEmotions();
-    }
-  }, [targetIdNum, targetIdStr]);
+    if (userCode) fetchMonthlyEmotions();
+  }, [year, month, userCode]);
 
   const checkLinkStatus = () => {
     setChecking(true);
-    if (!targetIdStr) {
+    if (!userCode) {
       setCheckLinkMessage('연동된 사용자 없음');
     } else {
-      setCheckLinkMessage(`${targetIdStr} 사용자 연동 중`);
+      setCheckLinkMessage(`${userCode.slice(0, 8)} 사용자 연동 중`);
     }
     setTimeout(() => {
       setCheckLinkMessage('연동 확인');
@@ -195,7 +205,7 @@ const MainScreen_G: React.FC<{
             month={month}
             emotionData={emotionData}
             emotionImageMap={emotionImageMap}
-            targetUserId={targetIdNum ?? 0}
+            userCode={userCode} // ← 더 이상 필요 없다면 CalendarGrid prop도 제거하세요.
           />
         </View>
 
@@ -216,10 +226,7 @@ const MainScreen_G: React.FC<{
           </TouchableOpacity>
 
           <TouchableOpacity onPress={goToFavorites}>
-            <Image
-              source={require('../../../assets/images/emotion-box.png')}
-              style={styles.emotionIcon}
-            />
+            <Image source={require('../../../assets/images/emotion-box.png')} style={styles.emotionIcon} />
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -246,96 +253,48 @@ const MainScreen_G: React.FC<{
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F3E1FF',
-  },
-  checkLinkWrapper: {
-    alignItems: 'center',
-    marginTop: 60,
-  },
-  checkLinkText: {
-    fontSize: 12,
-    color: '#AA9DB0FF',
-    fontWeight: '600',
-    textDecorationLine: 'underline',
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-    paddingTop: 10,
-  },
-  loadingOverlay: {
-    marginTop: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    marginTop: 8,
-    color: '#666',
-  },
+  // screen
+  container: { flex: 1, backgroundColor: '#F3E1FF' },
+  scrollContent: { paddingTop: 10, paddingHorizontal: 16, paddingBottom: 20 },
+
+  // link status
+  checkLinkWrapper: { alignItems: 'center', marginTop: 60 },
+  checkLinkText: { fontSize: 12, fontWeight: '600', color: '#AA9DB0FF', textDecorationLine: 'underline' },
+
+  // loading
+  loadingOverlay: { marginTop: 24, alignItems: 'center', justifyContent: 'center' },
+  loadingText: { marginTop: 8, color: '#666' },
+
+  // summary
   summaryContainer: {
     marginHorizontal: 4,
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     paddingVertical: 12,
     paddingHorizontal: 16,
+    alignItems: 'center',
     shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
     elevation: 3,
-    alignItems: 'center',
   },
-  summaryText: {
-    fontSize: 14,
-    color: '#4B148F',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  actionRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 12,
-    top: 60,
-    gap: 16,
-  },
-  checkButtonContainer: {
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  checkButtonText: {
-    fontSize: 16,
-    color: '#4B148F',
-    fontWeight: '800',
-  },
-  emotionIcon: {
-    width: 28,
-    height: 28,
-    resizeMode: 'contain',
-  },
-  requestButton: {
-    position: 'absolute',
-    top: 70,
-    left: 30,
-  },
-  requestIcon: {
-    width: 30,
-    height: 30,
-    resizeMode: 'contain',
-  },
-  logoutButton: {
-    position: 'absolute',
-    top: 70,
-    right: 30,
-  },
-  logoutIcon: {
-    width: 26,
-    height: 26,
-    resizeMode: 'contain',
-  },
+  summaryText: { fontSize: 14, lineHeight: 20, color: '#4B148F', textAlign: 'center' },
+
+  // actions
+  actionRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 12, gap: 16, top: 60 },
+  checkButtonContainer: { paddingVertical: 8, borderRadius: 8 },
+  checkButtonText: { fontSize: 16, fontWeight: '800', color: '#4B148F' },
+
+  // icons
+  emotionIcon: { width: 28, height: 28, resizeMode: 'contain' },
+  requestIcon: { width: 30, height: 30, resizeMode: 'contain' },
+  logoutIcon: { width: 26, height: 26, resizeMode: 'contain' },
+
+  // floating buttons
+  requestButton: { position: 'absolute', top: 70, left: 30 },
+  logoutButton: { position: 'absolute', top: 70, right: 30 },
 });
 
-export default MainScreen_G;
 
+export default MainScreen_G;
