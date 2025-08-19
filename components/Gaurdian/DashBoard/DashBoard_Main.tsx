@@ -20,111 +20,116 @@ interface Props {
 
 const { width } = Dimensions.get('window');
 
-/** 🔧 데모/실서버 전환 스위치 */
 const DEMO_MODE = false;
-
-/** 🔧 실제 서버 URL은 여기에서만 바꾸면 됩니다 */
-const ALERT_API_URL = '/api/people/my';
-const PROFILE_API_URL = '/api/people/my';
-const CONNECTED_USERS_URL = '/api/connected-users';
+const GUARDIAN_MY_URL = '/api/people/guardian/my';
 
 const DashBoard_Main: React.FC<Props> = ({ setUserToken, setUserType }) => {
-  // 알림(실데이터)
+  // 상태
   const [alertUsername, setAlertUsername] = useState<string | null>(null);
   const [alertState, setAlertState] = useState<'수락' | '거절' | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [connectedUsers, setConnectedUsers] = useState<Connect_User_Info[]>([]);
 
+  /** ✅ 한 번만 호출해서 전부 세팅 */
   useEffect(() => {
     if (DEMO_MODE) {
-      // 🎭 데모 데이터
       setAlertUsername('예원');
       setAlertState('수락');
-      return;
-    }
-
-    const fetchAlert = async () => {
-      try {
-        const token = await AsyncStorage.getItem('accessToken');
-        const response = await API.get(ALERT_API_URL, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = response.data?.data ?? response.data;
-
-        console.log('📬 알림 응답:', response.data);
-
-        // 필요 시 응답 구조에 맞게 매핑
-        const first = Array.isArray(data?.notification) ? data.notification[0] : null;
-        if (first?.protectorName && first?.status) {
-          setAlertUsername(first.protectorName);
-          setAlertState(first.status === 'accept' ? '수락' : '거절');
-        } else {
-          setAlertUsername(null);
-          setAlertState(null);
-        }
-      } catch (error) {
-        console.error('알림 요청 실패:', error);
-        setAlertUsername(null);
-        setAlertState(null);
-      }
-      
-    };
-
-    fetchAlert();
-  }, []);
-
-  // 프로필(실데이터)
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-
-  useEffect(() => {
-    if (DEMO_MODE) {
-      // 🎭 데모 데이터 (UserProfile 타입에 맞춰주세요)
-      const demoProfile: UserProfile = {
+      setUserProfile({
         name: '김동국',
         userId: 'dongguk08',
         email: 'dongguk08@dgu.ac.kr',
         birth: '2000-01-01',
-      } as UserProfile;
-      setUserProfile(demoProfile);
+      } as UserProfile);
+      setConnectedUsers([
+        { userCode:'1234', userName: '예원', connectScope: 'partial', Significant_emotion: '슬픔', Significant_date: 4 },
+        { userCode:'1234', userName: '도윤', connectScope: 'full', Significant_emotion: null, Significant_date: null },
+      ]);
       return;
     }
 
-    const fetchProfile = async () => {
+    (async () => {
       try {
         const token = await AsyncStorage.getItem('accessToken');
-        const response = await API.get(PROFILE_API_URL, {
+        const res = await API.get(GUARDIAN_MY_URL, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        console.log('👤 프로필 응답:', response.data);
 
-        // 필요 시 응답에서 프로필 키를 골라서 매핑
-        setUserProfile(response.data?.data ?? response.data);
-      } catch (error) {
-        console.error('프로필 불러오기 실패:', error);
+        console.log('전체 값 :',res.data)
+
+        const root = res.data?.data ?? res.data;
+
+        // 🔎 필요한 부분만 콘솔 출력
+        console.log('👤 프로필(요약):', {
+          name: root?.name,
+          username: root?.username,
+          email: root?.email,
+          birthdate: root?.birthdate,
+        });
+
+        const notif0 = Array.isArray(root?.sharingNotification) ? root.sharingNotification[0] : null;
+        console.log('📬 알림(요약):', notif0 ? { targetName: notif0.targetName, state: notif0.state } : '없음');
+
+        const infoList = Array.isArray(root?.sharingInfo)
+          ? root.sharingInfo.map((x: any) => ({
+              targetName: x?.targetName,
+              showRange: x?.showRange,
+              days: x?.negEmotion?.days ?? null,
+            }))
+          : [];
+        console.log('🔗 연동(요약):', infoList);
+
+        // 1) 프로필
+        setUserProfile({
+          name: root?.name ?? '',
+          userId: root?.username ?? '',
+          email: root?.email ?? '',
+          birth: root?.birthdate ?? '',
+        } as UserProfile);
+
+        // 2) 알림
+        if (notif0?.targetName && notif0?.state) {
+          setAlertUsername(notif0.targetName);
+          setAlertState(
+            notif0.state === 'MATCHED' ? '수락' : notif0.state === 'REJECTED' ? '거절' : null
+          );
+        } else {
+          setAlertUsername(null);
+          setAlertState(null);
+        }
+
+        // 3) 연동된 사용자
+        const mapped: Connect_User_Info[] = Array.isArray(root?.sharingInfo)
+          ? root.sharingInfo.map((item: any) => ({
+              userCode:item?.targetUserId??'',
+              userName: item?.targetName ?? '',
+              connectScope: item?.showRange ?? 'partial',
+              Significant_emotion: item?.negEmotion ? '부정' : null,
+              Significant_date: item?.negEmotion?.days ?? null,
+            }))
+          : [];
+        setConnectedUsers(mapped);
+      } catch (e: any) {
+        console.error('[GUARDIAN_MY_ERROR]', e?.response?.data?.error || e?.message);
         setUserProfile(null);
+        setAlertUsername(null);
+        setAlertState(null);
+        setConnectedUsers([]);
       }
-    };
-
-    fetchProfile();
+    })();
   }, []);
 
-  // 검색 결과(실데이터)
+  // 🔍 검색 API(유지)
   const [searchText, setSearchText] = useState('');
   const [connectUser, setConnectUser] = useState<Search_User | null>(null);
-
   const handleSearch = async (text: string) => {
-    setSearchText(text); // ✅ 여기에 추가!
-    
-    if (!text) {
-      setConnectUser(null);
-      return;
-    }
-    try {
-      const response = await API.post(`/api/people/search/`, {
-        target_user_code: text,
-      });
-      console.log('🔍 검색 응답:', response.data);
+    setSearchText(text);
+    if (!text) return setConnectUser(null);
 
+    try {
+      const response = await API.post(`/api/people/search`, { target_user_code: text });
       const data = response.data?.data ?? response.data;
-      if (data && data.userName && data.userBirth) {
+      if (data?.name && data?.birthdate) {
         setConnectUser({ name: data.name, birthdate: data.birthdate } as Search_User);
       } else {
         setConnectUser(null);
@@ -134,47 +139,6 @@ const DashBoard_Main: React.FC<Props> = ({ setUserToken, setUserType }) => {
       setConnectUser(null);
     }
   };
-
-  
-
-  // 연동된 사용자(실데이터)
-  const [connectedUsers, setConnectedUsers] = useState<Connect_User_Info[]>([]);
-
-  useEffect(() => {
-    if (DEMO_MODE) {
-      // 🎭 데모 데이터
-      setConnectedUsers([
-        { userName: '예원', connectScope: 'partial', Significant_emotion: '슬픔', Significant_date: 4 },
-        { userName: '도윤', connectScope: 'full', Significant_emotion: null, Significant_date: null },
-        { userName: '지민', connectScope: 'partial', Significant_emotion: '행복', Significant_date: 6 },
-      ]);
-      return;
-    }
-
-    const fetchConnectedUsers = async () => {
-      try {
-        const token = await AsyncStorage.getItem('accessToken');
-        const response = await API.get(CONNECTED_USERS_URL, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = response.data?.data ?? response.data;
-        console.log('🔗 연동된 사용자 응답:', response.data);
-
-        if (Array.isArray(data)) {
-          setConnectedUsers(data);
-        } else if ('message' in data && data.message === '연동된 사용자가 없습니다.') {
-          setConnectedUsers([]);
-        } else {
-          setConnectedUsers([]);
-        }
-      } catch (error) {
-        console.error('연동 사용자 불러오기 실패:', error);
-        setConnectedUsers([]);
-      }
-    };
-
-    fetchConnectedUsers();
-  }, []);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -224,16 +188,7 @@ const styles = StyleSheet.create({
     width: '90%',
     alignSelf: 'center',
   },
-  Container2: {
-    marginTop: 15,
-    width: '90%',
-  },
-  Container3: {
-    marginTop: 15,
-    width: '90%',
-  },
-  Container4: {
-    marginTop: 15,
-    width: '90%',
-  },
+  Container2: { marginTop: 15, width: '90%' },
+  Container3: { marginTop: 15, width: '90%' },
+  Container4: { marginTop: 15, width: '90%' },
 });

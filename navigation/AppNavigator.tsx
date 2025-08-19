@@ -54,10 +54,10 @@ export type RootStackParamList = {
   // 로그인 후 (보호자 전용)
   DashBoard_Main:undefined;
   GuardianFirst: undefined;
-  MainScreen_G : undefined;
+  MainScreen_G: { userCode: string};
   FavoriteYear : undefined;
   FavoriteMonth:  { year: number; month: number };
-  DiaryAnalyze_G: { date: string; target_user_id: number; day: number; };
+  DiaryAnalyze_G: { date: string; userCode: string; day: number; };
   AlertScreen: undefined;
 
 };

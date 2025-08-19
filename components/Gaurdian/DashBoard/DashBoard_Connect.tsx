@@ -38,6 +38,8 @@ const DashBoard_Connect: React.FC<Props> = ({ user, setConnectUser, searchText }
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
+      console.log(res.data)
+
       const { success, data, error } = res.data ?? {};
       if (success) {
         // success:true, data:"연동 요청 성공"
