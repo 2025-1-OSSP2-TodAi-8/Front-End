@@ -7,6 +7,7 @@ import API from '../../api/axios';
 
 interface AudioRecorderProps {
   start: boolean;
+  gender: 'MALE' | 'FEMALE';
   onResult: (response: {
     success: number;
     emotion: number[];
@@ -18,7 +19,7 @@ interface AudioRecorderProps {
 
 const MIN_DURATION_MS = 2000;
 
-const AudioRecorder: React.FC<AudioRecorderProps> = ({ start, onResult, onVolumeChange }) => {
+const AudioRecorder: React.FC<AudioRecorderProps> = ({ start, gender, onResult, onVolumeChange }) => {
   const [recording, setRecording] = useState(false);
   const [recordedFile, setRecordedFile] = useState<string | null>(null);
   const [currFileName, setCurrFileName] = useState<string | null>(null);
@@ -83,7 +84,10 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ start, onResult, onVolume
     const name = currFileName || filePath.split('/').pop() || makeDateName();
 
     const form = new FormData();
+    form.append('gender', gender);
     form.append('audio', { uri, type: 'audio/wav', name } as any);
+
+    console.log('FormData:', Object.fromEntries((form as any).entries()));
 
     const base = (API as any)?.defaults?.baseURL || '';
     const url = '/api/diary/analyze';

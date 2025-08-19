@@ -9,6 +9,7 @@ import {
 import { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/AppNavigator';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 type ReceiveMessageProps = {
@@ -21,23 +22,27 @@ type ReceiveMessageProps = {
 const ReceiveMessage: React.FC<ReceiveMessageProps> = ({setUserToken, setUserType, route, navigation}) => {
   const [messageContent, setMessageContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const protectorId = 10;
-  const targetDate = new Date().toISOString().split('T')[0]; 
+  const {messageId, sender} = route.params;
 
   useEffect(() => {
     const fetchMessage = async () => {
       try {
-        const response = await axios.get('https://port-0-back-end-ma5ak09e7076228d.sel4.cloudtype.app', {
-          params: {
-            protectorId,
-            targetDate,
-          },
-        });
+        const token = await AsyncStorage.getItem('accessToken');
 
-        if (response.status === 200 && response.data.messageContent) {
-          setMessageContent(response.data.messageContent);
+        if (!token) throw new Error('토큰 없음');
+
+        const messageId = route.params.messageId; 
+
+        const response = await axios.post(
+          'https://port-0-back-end-ma5ak09e7076228d.sel4.cloudtype.app/api/people/sharing/message',
+          { message_id: messageId },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (response.status === 200 && response.data.success) {
+          setMessageContent(response.data.data.content);
         } else {
+          console.log('⚠️ 메시지 없음 또는 success=false');
           setMessageContent('받은 메시지가 없습니다.');
         }
       } catch (error) {
@@ -59,6 +64,7 @@ const ReceiveMessage: React.FC<ReceiveMessageProps> = ({setUserToken, setUserTyp
         <ActivityIndicator size="large" color="#8B5CF6" />
       ) : (
         <View style={styles.messageBox}>
+          <Text style={styles.senderText}>From. {sender}님</Text>
           <Text style={styles.messageText}>
             {messageContent}
           </Text>
@@ -89,7 +95,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 16,
     padding: 20,
-    minHeight: 200,
+    minHeight: 400,
     justifyContent: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -99,6 +105,13 @@ const styles = StyleSheet.create({
   },
   messageText: {
     fontSize: 16,
+    fontWeight: '600',
     color: '#333',
   },
+  senderText: {
+    fontSize: 18,
+    bottom: 150, 
+    fontWeight: 'bold',
+    color: '#4A0080',
+  }
 });

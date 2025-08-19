@@ -8,34 +8,52 @@ import {
   Alert,
 } from 'react-native';
 import axios from 'axios';
+import { useRoute, RouteProp } from '@react-navigation/native';
+import { RootStackParamList } from '../../navigation/AppNavigator';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+type SendMessageRootProp = RouteProp<RootStackParamList, 'SendMessage'>;
 
 const SendMessage = () => {
-  const [messageContent, setMessageContent] = useState('');
+  const route = useRoute<SendMessageRootProp>();
+  const { userCode } = route.params;
+  const [ messageContent, setMessageContent] = useState('');
 
-  const userId = 3;
-
-  const handleSend = async () => {
+const handleSend = async () => {
     if (!messageContent.trim()) {
       Alert.alert('알림', '메세지를 입력해주세요.');
       return;
     }
-
-    const sentDate = new Date().toISOString();
-
-    const requestBody = {
-      messageContent,
-      userId,
-      sentDate,
-    };
-
     try {
-      const response = await axios.post('https://port-0-back-end-ma5ak09e7076228d.sel4.cloudtype.app', requestBody);
 
-      if (response.status === 200 || response.status === 201) {
+      const token = await AsyncStorage.getItem('accessToken');
+
+      if (!token) {
+        Alert.alert('오류', '로그인 정보가 없습니다. 다시 로그인해주세요.');
+        return;
+      }
+
+      const requestBody = {
+        target_user_id: userCode, 
+        content: messageContent, 
+      };
+      const headers = {
+        'Authorization': `Bearer ${token}`
+      };
+
+      const response = await axios.post(
+        'https://port-0-back-end-ma5ak09e7076228d.sel4.cloudtype.app/api/people/sharing/sendmessage', 
+        requestBody,
+        { headers: headers } 
+      );
+
+      if (response.data.success) {
+        console.log('✅ 메세지 전송 성공:', response.data);
         Alert.alert('성공', '메세지가 전송되었습니다!');
         setMessageContent('');
       } else {
-        Alert.alert('실패', '메세지 전송에 실패했습니다.');
+        const errorMessage = response.data.error?.message || '메세지 전송에 실패했습니다.';
+        Alert.alert('실패', errorMessage);
       }
     } catch (error) {
       console.error('메세지 전송 오류:', error);
@@ -49,7 +67,7 @@ const SendMessage = () => {
 
       <TextInput
         style={styles.input}
-        placeholder="응원의 메세지를 보내 보세요! 넌 잘하고 있어!!"
+        placeholder="응원의 메세지를 보내 보세요. 넌 잘하고 있어!!"
         placeholderTextColor="#999"
         multiline
         value={messageContent}
@@ -81,7 +99,7 @@ const styles = StyleSheet.create({
     color: '#4A0080',
   },
   input: {
-    height: 200,
+    height: 350,
     backgroundColor: 'white',
     borderRadius: 16,
     padding: 16,

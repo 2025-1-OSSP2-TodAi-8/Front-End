@@ -18,7 +18,7 @@ import FavoritesScreen from '../components/Favorites/FavoriteScreen';
 import FavoriteScreenMonth from '../components/Favorites/FavoriteScreenMonth';
 import Conversation from '../components/Record/conversation';
 import Mypage from '../components/Mypage/Mypage';
-
+import ReceiveMessage from '../components/Mypage/ReceiveMessage';
 
 //보호자 화면
 import DashBoard_Main from '../components/Gaurdian/DashBoard/DashBoard_Main';
@@ -26,7 +26,7 @@ import MainScreen_G from '../components/Gaurdian/Month_Screen/MainScreen_G';
 import GuardianFirst from '../components/Gaurdian/guardian_first';
 import DiaryAndAnalyzeScreen_G from '../components/Gaurdian/DiaryAndAnalyze_G/DiaryAndAnalyzeScreen_G';
 import AlertScreen from '../components/Gaurdian/AlertScreen';
-import ReceiveMessage from '../components/Mypage/ReceiveMessage';
+import SendMessage from '../components/Gaurdian/SendMessage';
 
 export type RootStackParamList = {
   // 로그인 전
@@ -49,7 +49,7 @@ export type RootStackParamList = {
   MonthDetail: { year: number; month: number };
   Conversation: { date: string } | undefined;
   Mypage: undefined;
-  ReceiveMessage: {message: { sender: string; content: string; date: string }};
+  ReceiveMessage: { messageId: string; sender: string };
 
   // 로그인 후 (보호자 전용)
   DashBoard_Main:undefined;
@@ -59,7 +59,7 @@ export type RootStackParamList = {
   FavoriteMonth:  { year: number; month: number };
   DiaryAnalyze_G: { date: string; userCode: string; day: number; };
   AlertScreen: undefined;
-
+  SendMessage: { userCode: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -175,6 +175,7 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({
             <Stack.Screen name="ReceiveMessage">
               {props => <ReceiveMessage {...props} setUserToken={setUserToken} setUserType={setUserType}/>}
             </Stack.Screen>
+            <Stack.Screen name="SendMessage" component={SendMessage}/>
 
           </>
         ) : (
