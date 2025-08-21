@@ -10,6 +10,7 @@ import {
   Animated,
   Dimensions,
   ActivityIndicator,
+  Platform,               // ★ 추가
 } from 'react-native';
 import AudioRecorder from './VoiceRecorder';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
@@ -20,6 +21,9 @@ import MenuIcon from '../MenuBar/MenuIcon';
 import MenuBar from '../MenuBar/MenuBar';
 import WithMenuLayout from '../MenuBar/MenuBarLayout';
 import WaveForm from './WaveForm';
+
+import AsyncStorage from '@react-native-async-storage/async-storage'; // ★ 추가
+import API from '../../api/axios';                                     // ★ 추가
 
 const { width } = Dimensions.get('window');
 
@@ -33,7 +37,6 @@ const Conversation: React.FC<Props> = ({ setUserToken, setUserType }) => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const dateParam = route.params?.date;
 
-  // const [showQuestion, setQuestion] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [recordStart, setRecordStart] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
@@ -54,7 +57,7 @@ const Conversation: React.FC<Props> = ({ setUserToken, setUserType }) => {
   useEffect(() => {
     Animated.timing(questionAnimation, {
       toValue: 1,
-      duration: 150, // 원하면 더 줄여도 됨
+      duration: 150,
       useNativeDriver: true,
     }).start();
   }, []);
@@ -64,7 +67,6 @@ const Conversation: React.FC<Props> = ({ setUserToken, setUserType }) => {
     setShowSummary(false);
     setSummaryText(null);
     setEmotionArray([]);
-    
   };
 
   const beginRecording = () => {
@@ -72,21 +74,62 @@ const Conversation: React.FC<Props> = ({ setUserToken, setUserType }) => {
     setRecordStart(true);
     userRecordingAnimation.setValue(0);
     Animated.timing(userRecordingAnimation, { toValue: 1, useNativeDriver: true }).start();
-    setIsRecording(true);            // 녹음 시작
+    setIsRecording(true);
   };
 
   const handleMicPress = () => {
     if (!isRecording) {
-      // 시작: 로딩 표시 금지
       beginRecording();
     } else {
-      // 종료: 업로드 시작되므로 이때만 로딩 표시
       setIsLoading(true);
       setIsRecording(false);
     }
   };
 
-  const handleServerResult = (r: { success: number; emotion: number[]; summary: string; message?: string }) => {
+  // ★ 저장 API 호출 함수 (API 인스턴스 사용)
+  const submitDiaryRecord = async (params: {
+    emotion: number[];
+    summary: string;
+    fileUri?: string;
+  }) => {
+    try {
+      const token = await AsyncStorage.getItem('accessToken');
+      const dateStr = dateParam ?? new Date().toISOString().slice(0, 10);
+
+      const form = new FormData();
+      form.append('date', dateStr);
+      params.emotion.forEach(v => form.append('emotion', String(v))); // 배열을 문자열로 안전 전송
+      form.append('summary', params.summary ?? '');
+
+      if (params.fileUri) {
+        const uri =
+          Platform.OS === 'android' && !params.fileUri.startsWith('file://')
+            ? `file://${params.fileUri}`
+            : params.fileUri;
+        const name = `record-${dateStr}.wav`;
+        form.append('audio', { uri, name, type: 'audio/wav' } as any);
+      }
+
+      const res = await API.post('/api/diary/record', form, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          'Content-Type': 'multipart/form-data'  // 인스턴스가 boundary 설정하도록 생략 권장
+        },
+      });
+      console.log('📌 기록 저장 완료:', res.status);
+    } catch (e: any) {
+      console.log('📌 기록 저장 실패:', e?.response?.status || e?.message);
+    }
+  };
+
+  // ★ fileUri까지 받도록 타입 확장
+  const handleServerResult = async (r: {
+    success: number;
+    emotion: number[];
+    summary: string;
+    fileUri?: string;
+    message?: string;
+  }) => {
     setIsLoading(false);
     if (r.success === 1) {
       setSummaryText(r.summary?.trim()?.length ? r.summary : null);
@@ -94,6 +137,9 @@ const Conversation: React.FC<Props> = ({ setUserToken, setUserType }) => {
       summaryAnimation.setValue(0);
       Animated.timing(summaryAnimation, { toValue: 1, duration: 300, useNativeDriver: true }).start();
       setShowSummary(true);
+
+      // 분석 성공 시, 바로 저장 API 호출
+      await submitDiaryRecord({ emotion: r.emotion, summary: r.summary, fileUri: r.fileUri });
       return;
     }
     if (r.success === 2) setOverlayText('너무 짧습니다!\n오늘 하루에 대해 좀 더 말해주세요');
@@ -131,8 +177,7 @@ const Conversation: React.FC<Props> = ({ setUserToken, setUserType }) => {
               <TouchableOpacity onPress={() => navigation.navigate('Main')}>
                 <Text style={styles.dateText}>
                   {`${dateParam.slice(0, 4)}년 ${parseInt(dateParam.slice(5, 7), 10)}월 ${parseInt(
-                    dateParam.slice(8, 10),
-                    10
+                    dateParam.slice(8, 10), 10
                   )}일`}
                 </Text>
               </TouchableOpacity>
@@ -152,7 +197,7 @@ const Conversation: React.FC<Props> = ({ setUserToken, setUserType }) => {
 
           <AudioRecorder
             start={isRecording}
-            onResult={handleServerResult}
+            onResult={handleServerResult}         // ★ fileUri 포함
             onVolumeChange={(db) => setDecibel(db)}
           />
 

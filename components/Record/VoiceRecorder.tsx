@@ -3,15 +3,15 @@ import { PermissionsAndroid, Platform } from 'react-native';
 import AudioRecord from 'react-native-audio-record';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SoundLevel from 'react-native-sound-level';
-import API from '../../api/axios';
+import axios from 'axios';
 
 interface AudioRecorderProps {
   start: boolean;
-  //gender: 'MALE' | 'FEMALE';
   onResult: (response: {
     success: number;
     emotion: number[];
     summary: string;
+    fileUri?: string;
     message?: string;
   }) => void;
   onVolumeChange?: (db: number) => void;
@@ -96,14 +96,14 @@ const uploadRecording = async (filePath: string) => {
 
       console.log('업로드 전송 데이터 확인:', { gender, audio: name });
 
-      const base = (API as any)?.defaults?.baseURL || '';
+      //const base = (API as any)?.defaults?.baseURL || '';
       const url = 'http://121.189.72.83:8888/api/diary/analyze';
       console.log('✅ 요청 URL:', url);
 
-      console.log('POST', base + url);
+      console.log('POST', url);
       console.log('업로드 파일 정보:', { name, type: 'audio/wav', uri });
       
-      const res = await API.post(url, form, {
+      const res = await axios.post(url, form, {
         headers: {
           'Content-Type': 'multipart/form-data',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -111,9 +111,13 @@ const uploadRecording = async (filePath: string) => {
       });
 
       console.log('업로드 완료 상태:', res.status);
-      const json = res.data || {};
-      onResult({ success: 1, emotion: json.emotion_analysis ?? [], summary: json.summary ?? '' });
-
+      const data = res.data || {};
+      onResult({
+        success: 1,
+        emotion: data.emotion ?? [],
+        summary: data.summary ?? '',
+        fileUri: uri,
+      });
     } catch (e: any) {
       console.error('uploadRecording 함수 내부에서 오류 발생:', e);
 
