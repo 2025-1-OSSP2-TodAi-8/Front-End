@@ -21,12 +21,7 @@ export interface Connect_User_Info {
 
 const emotionImageMap: { [key: string]: any } = {
   평범: require("../../../assets/images/neutral2.png"),
-  놀람: require("../../../assets/images/surprise2.png"),
-  화남: require("../../../assets/images/angry2.png"),
-  행복: require("../../../assets/images/happy2.png"),
-  슬픔: require("../../../assets/images/sad2.png"),
-  혐오: require("../../../assets/images/disgust2.png"),
-  공포: require("../../../assets/images/fear2.png"),
+  부정: require("../../../assets/images/negative2.png")
 };
 
 interface Props {
@@ -66,7 +61,7 @@ const DashBoard_Connected_User: React.FC<Props> = ({ connectedUsers }) => {
     if (!emotion || !date) {
       return "특별한 감정변화가 없습니다.";
     }
-    return `최근 ${emotion ?? "평범"} 감정이 ${date}일 연속\n나타났습니다.`;
+    return `최근 부정적인 감정이 ${date}일 연속\n나타났습니다.`;
   };
 
   return (
@@ -127,9 +122,7 @@ const DashBoard_Connected_User: React.FC<Props> = ({ connectedUsers }) => {
                         >
                           <View style={styles.Container}>
                             <Image
-                              source={
-                                emotionImageMap[user.Significant_emotion ?? "평범"]
-                              }
+                              source={emotionImageMap[user.Significant_emotion != null ? "부정" : "평범"]}
                               style={styles.emotionImage}
                             />
                             <View>
