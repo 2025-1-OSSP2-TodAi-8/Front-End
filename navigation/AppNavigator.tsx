@@ -27,6 +27,7 @@ import GuardianFirst from '../components/Gaurdian/guardian_first';
 import DiaryAndAnalyzeScreen_G from '../components/Gaurdian/DiaryAndAnalyze_G/DiaryAndAnalyzeScreen_G';
 import AlertScreen from '../components/Gaurdian/AlertScreen';
 import SendMessage from '../components/Gaurdian/SendMessage';
+import EmotionDiaryListScreen from '../components/Gaurdian/EmotionCollect/EmotionCollect'
 
 export type RootStackParamList = {
   // 로그인 전
@@ -60,6 +61,12 @@ export type RootStackParamList = {
   DiaryAnalyze_G: { date: string; userCode: string; day: number; };
   AlertScreen: undefined;
   SendMessage: { userCode: string };
+  EmotionDiaryList: {
+    ym: string;               // "2024-07"
+    emotionIndex: number;     // 0~5
+    emotionLabel: string;     // "행복" 등
+    targetId: string;         // userCode
+  };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -176,6 +183,11 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({
               {props => <ReceiveMessage {...props} setUserToken={setUserToken} setUserType={setUserType}/>}
             </Stack.Screen>
             <Stack.Screen name="SendMessage" component={SendMessage}/>
+            <Stack.Screen
+                name="EmotionDiaryList"
+                component={EmotionDiaryListScreen}
+                options={{ headerShown: false }}
+            />
 
           </>
         ) : (
@@ -202,6 +214,7 @@ const AppNavigator: React.FC<AppNavigatorProps> = ({
                 />
               )}
             </Stack.Screen>
+            
           </>
         )}
       </Stack.Navigator>
