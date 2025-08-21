@@ -7,7 +7,7 @@ import API from '../../api/axios';
 
 interface AudioRecorderProps {
   start: boolean;
-  gender: 'MALE' | 'FEMALE';
+  //gender: 'MALE' | 'FEMALE';
   onResult: (response: {
     success: number;
     emotion: number[];
@@ -19,7 +19,7 @@ interface AudioRecorderProps {
 
 const MIN_DURATION_MS = 2000;
 
-const AudioRecorder: React.FC<AudioRecorderProps> = ({ start, gender, onResult, onVolumeChange }) => {
+const AudioRecorder: React.FC<AudioRecorderProps> = ({ start, onResult, onVolumeChange }) => {
   const [recording, setRecording] = useState(false);
   const [recordedFile, setRecordedFile] = useState<string | null>(null);
   const [currFileName, setCurrFileName] = useState<string | null>(null);
@@ -78,40 +78,53 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({ start, gender, onResult, 
     await uploadRecording(path);
   };
 
-  const uploadRecording = async (filePath: string) => {
-    const token = await AsyncStorage.getItem('accessToken');
-    const uri = Platform.OS === 'android' && !filePath.startsWith('file://') ? `file://${filePath}` : filePath;
-    const name = currFileName || filePath.split('/').pop() || makeDateName();
-
-    const form = new FormData();
-    form.append('gender', gender);
-    form.append('audio', { uri, type: 'audio/wav', name } as any);
-
-    console.log('FormData:', Object.fromEntries((form as any).entries()));
-
-    const base = (API as any)?.defaults?.baseURL || '';
-    const url = '/api/diary/analyze';
-    console.log('POST', base + url);
-    console.log('업로드 파일 정보:', { name, type: 'audio/wav', uri });
-
+const uploadRecording = async (filePath: string) => {
     try {
+      const token = await AsyncStorage.getItem('accessToken');
+      const gender = await AsyncStorage.getItem('userGender');
+
+      if(!gender) {
+        onResult({ success: 0, emotion: [], summary: '', message: '성별 정보 없음'});
+        return;
+      }
+      const uri = Platform.OS === 'android' && !filePath.startsWith('file://') ? `file://${filePath}` : filePath;
+      const name = currFileName || filePath.split('/').pop() || makeDateName();
+
+      const form = new FormData();
+      form.append('gender', gender);
+      form.append('audio', { uri, type: 'audio/wav', name } as any);
+
+      console.log('업로드 전송 데이터 확인:', { gender, audio: name });
+
+      const base = (API as any)?.defaults?.baseURL || '';
+      const url = 'http://121.189.72.83:8888/api/diary/analyze';
+      console.log('✅ 요청 URL:', url);
+
+      console.log('POST', base + url);
+      console.log('업로드 파일 정보:', { name, type: 'audio/wav', uri });
+      
       const res = await API.post(url, form, {
         headers: {
           'Content-Type': 'multipart/form-data',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
+
       console.log('업로드 완료 상태:', res.status);
       const json = res.data || {};
       onResult({ success: 1, emotion: json.emotion_analysis ?? [], summary: json.summary ?? '' });
+
     } catch (e: any) {
+      console.error('uploadRecording 함수 내부에서 오류 발생:', e);
+
       const status = e?.response?.status;
       const msg =
         status === 404
           ? '요청 경로가 없습니다 (404)'
           : status
           ? `업로드 실패 (${status})`
-          : '네트워크 오류';
+          : '네트워크 또는 알 수 없는 오류';
+      
       console.log('업로드 실패:', msg);
       onResult({ success: 0, emotion: [], summary: '', message: msg });
     }

@@ -37,6 +37,7 @@ export default function Login({ setUserToken, setUserType }: LoginProps) {
       await AsyncStorage.setItem('accessToken', 'dummy_access_token');
       await AsyncStorage.setItem('refreshToken', 'dummy_refresh_token');
       await AsyncStorage.setItem('guardianId', '');
+      await AsyncStorage.setItem('userGender', 'FEMALE');
       setUserToken('dummy_access_token');
       setUserType('user');
       navigation.navigate('Main');
@@ -69,14 +70,16 @@ export default function Login({ setUserToken, setUserType }: LoginProps) {
           accessToken,
           refreshToken,
           userType,
+          gender, 
         }: {
           accessToken: string;
           refreshToken: string;
           userType: 'user' | 'guardian' | string;
+          gender: 'MALE' | 'FEMALE';
         } = data;
   
         // 필수 데이터 유효성 확인
-        if (!accessToken || !refreshToken || !userType) {
+        if (!accessToken || !refreshToken || !userType || !gender) {
           Alert.alert('로그인 실패', '응답 데이터가 올바르지 않습니다.');
           return;
         }
@@ -84,6 +87,7 @@ export default function Login({ setUserToken, setUserType }: LoginProps) {
         // 로그인 성공 처리
         await AsyncStorage.setItem('accessToken', accessToken);
         await AsyncStorage.setItem('refreshToken', refreshToken);
+        await AsyncStorage.setItem('userGender', gender);
         setUserToken(accessToken);
         setUserType(userType.toLowerCase() as 'user' | 'guardian');
   
