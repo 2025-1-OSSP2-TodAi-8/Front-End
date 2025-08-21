@@ -3,8 +3,7 @@
 [![Platform](https://img.shields.io/badge/Android-iOS-informational)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)]()
 
-> 사용자의 음성/일기 데이터를 바탕으로 감정을 분석하고, 캘린더/그래프로 시각화하여 일상 감정 변화를 쉽게 확인할 수 있는 앱입니다.  
-> (대회 소개용 한 줄을 너희 스타일로 더 임팩트 있게 수정해도 좋아요)
+> 사용자의 음성/일기 데이터를 바탕으로 감정을 분석하고, 캘린더/그래프로 시각화하여 일상 감정 변화를 쉽게 확인할 수 있는 앱
 
 ---
 
